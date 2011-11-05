@@ -3,6 +3,7 @@ package pda.lupa;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
+import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 import android.util.AttributeSet;
@@ -110,7 +111,8 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * Volana pri kazdem novem framu
      * @param bytes data z kamery v divnym formatu :)
      */
-    public void onPreviewFrame(byte[] bytes) {
-	Log.d("callback", "GL callback");
+    public void onPreviewFrame(byte[] bytes, Camera camera) {
+	//Log.d("callback", "GL callback");
+	Camera.Size size = camera.getParameters().getPreviewSize();
     }
 }
