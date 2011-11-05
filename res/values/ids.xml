@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources>
+  <!-- Messages IDs -->
+  <item type="id" name="auto_focus"/>
+  <item type="id" name="surface"/>
+</resources>
