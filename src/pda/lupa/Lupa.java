@@ -70,6 +70,8 @@ public final class Lupa {
     protected void open() {
 	if(camera == null) {
 	    camera = Camera.open();
+	    
+	    //glView.setCamera(camera);
 	    //Autofocus:
 	    autoFocus = new MyAutoFocusCallback(); //vytvorime callback
 	    autoFocus.setHandler(this.handler, R.id.auto_focus); //nastavime handle
@@ -112,6 +114,7 @@ public final class Lupa {
      * releasuje kameru a mazu vsechny mozny callbacky etc.
      */
     public void close() {
+	System.exit(0);
 	if (camera != null) {
 	    prevHolder.addCallback(null); //smazeme klasickej preview 
 	    autoFocus.setHandler(null, 0); //smazeme handler

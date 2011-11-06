@@ -61,6 +61,9 @@ import android.widget.Toast;
 	    if (size!=null) {
 		parameters.setPreviewSize(size.width, size.height);
 		
+		//musime nastavit danou velikost do GLSurfaceView
+		this.glCallback.setPreviewSize(size);
+		
 		camera.setParameters(parameters);
 		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
 		

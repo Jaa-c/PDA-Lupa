@@ -108,7 +108,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	// Drawing
 	gl.glTranslatef(0.0f, 0.0f, -5.0f);		// move 5 units INTO the screen
 							// is the same as moving the camera 5 units away
-	//square.draw(gl);
+	square.draw(gl);
     }
  
     Bitmap bitmap = null;
@@ -130,9 +130,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 		yuvsCounter=yuvsCounter+this.prevY;
 		bwCounter=bwCounter+this.prevY;
 	}
-	/*{if(bitmap == null) {
-	    bitmap = BitmapFactory.decodeByteArray(cameraFrame, 0, yuvsSource.length-1);
-	}*/
+	
 	
     }
     
@@ -141,6 +139,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * method.
      */
     void bindCameraTexture(GL10 gl) {
+	if(cameraFrame == null) return;
 	    try {
 		    if (cameraTexture==null)
 			    cameraTexture=new int[1];
@@ -173,10 +172,10 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     private FloatBuffer textureBuffer;	// buffer holding the texture coordinates
     private float texture[] = {
 		    // Mapping coordinates for the vertices
-		    0.0f, 1.0f,		// top left		(V2)
-		    0.0f, 0.0f,		// bottom left	(V1)
-		    1.0f, 1.0f,		// top right	(V4)
-		    1.0f, 0.0f		// bottom right	(V3)
+		    0.0f, 0.0f,		// top left		(V2)
+		    1.0f, 0.0f,		// bottom left	(V1)
+		    0.0f, 1.0f,		// top right	(V4)
+		    1.0f, 1.0f		// bottom right	(V3)
     };
     
 
@@ -212,11 +211,14 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	    // loading texture
 	    //if(cameraFrame == null) return;
 	    
+	    bindCameraTexture(gl);
+	    if(true) return;
+	    
 	    bitmap = BitmapFactory.decodeResource(context.getResources(),R.drawable.bitmap);
 	    // generate one texture pointer
 	    gl.glGenTextures(1, textures, 0);
 	    // ...and bind it to our array
-	    //gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
+	    gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
 	    // create nearest filtered texture
 	    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
@@ -239,7 +241,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	public void draw(GL10 gl) {
 	    if(cameraFrame == null) return;
 	    // bind the previously generated texture
-	    //gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
+	    /// gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
+	    
+	    gl.glBindTexture(GL10.GL_TEXTURE_2D, cameraTexture[0]);
 
 	    // Point to our buffers
 	    gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
@@ -248,7 +252,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	    // Set the face rotation
 	    gl.glFrontFace(GL10.GL_CW);
 	    // set the colour for the square
-	    gl.glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
+	    //gl.glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
 
 	    // Point to our vertex buffer
 	    gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
