@@ -15,7 +15,7 @@ final public class MyPreviewCallback implements Camera.PreviewCallback {
     public void onPreviewFrame(byte[] bytes, Camera camera) {
 	Log.d("callback", "standard callback");
 	if(glCallback != null) 
-	    glCallback.onPreviewFrame(bytes);
+	    glCallback.onPreviewFrame(bytes, camera);
     }
    
 }
