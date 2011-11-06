@@ -33,6 +33,7 @@ public class MainActivity extends Activity
     public void onPause() {
 	super.onPause();
 	lupa.close();
+	System.exit(0);
     }
     
     

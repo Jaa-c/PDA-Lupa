@@ -3,6 +3,7 @@ package pda.lupa;
 import android.app.Activity;
 import android.hardware.Camera;
 import android.util.Log;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -53,6 +54,10 @@ public final class Lupa {
 	this.activity = main;
 	this.glView = (MyGLSurfaceView) this.activity.findViewById(R.id.gl_preview);
 	this.prev = (SurfaceView) this.activity.findViewById(R.id.preview);
+	
+	//je to jeste potreba?
+	Display display = activity.getWindowManager().getDefaultDisplay();
+	glView.getHolder().setFixedSize(display.getWidth(), display.getHeight());
 	
 	this.handler = new ActionHandler(this);
 	this.open();

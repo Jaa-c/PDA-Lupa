@@ -33,30 +33,12 @@ import android.widget.Toast;
 	    
 	    camera = lupa.getCamera();
 	    prevHolder = lupa.getPrevHolder();
-	    
-
 	}
 	
 	
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-	    try {
-		if(activity.getResources().getBoolean(pda.lupa.R.bool.GL_view)) {//nejaka podminka kdyz ho budu chtit zobrazit
-		    camera.setPreviewCallback(new MyPreviewCallback(glCallback));
-		}
-		//else
-		camera.setPreviewDisplay(prevHolder);
-		
-		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
-		lupa.setInPreview(true);
-		lupa.zoom(5);
-		lupa.focus();
-	    }
-	    catch (Throwable t) {
-		Log.e("PreviewDemo-surfaceCallback",
-			"Exception in setPreviewDisplay()", t);
-		Toast.makeText(activity, t.getMessage(), Toast.LENGTH_LONG).show();
-	  }
+	    //nic
 	}
 
 	@Override
@@ -69,7 +51,25 @@ import android.widget.Toast;
 		this.glCallback.setPreviewSize(size);
 		camera.setParameters(parameters);
 	    }
+	    
+	    try {
+		if(activity.getResources().getBoolean(pda.lupa.R.bool.GL_view)) //nejaka podminka kdyz ho budu chtit zobrazit
+		    camera.setPreviewCallback(new MyPreviewCallback(glCallback));
+		//else
+		    camera.setPreviewDisplay(prevHolder);
+		
+		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
+		lupa.setInPreview(true);
+		lupa.zoom(5);
+		lupa.focus();
+	    }
+	    catch (Throwable t) {
+		Log.e("PreviewDemo-surfaceCallback",
+			"Exception in setPreviewDisplay()", t);
+		Toast.makeText(activity, t.getMessage(), Toast.LENGTH_LONG).show();
+	  }
 	}
+	
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
@@ -84,11 +84,8 @@ import android.widget.Toast;
 	 * @return 
 	 */
 	private Camera.Size getBestPreviewSize(int width, int height, Camera.Parameters parameters) {
-	    
-	    
 	    Camera.Size result = null;	    
 	    
-
 	    for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
 		Log.d("tag", size.width + "x" + size.height);
 		if (size.width <= width && size.height <= height) {

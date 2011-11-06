@@ -1,22 +1,20 @@
 package pda.lupa;
 
+import android.R.array;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
-import android.graphics.PointF;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
-import android.opengl.GLUtils;
+import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.widget.Toast;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -143,7 +141,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	if(context.getResources().getBoolean(pda.lupa.R.bool.GL_view))
 	    bindCameraTexture(gl);//nabindujeme aktualni texturu
 	else
-	    gl.glColor4f(0f, 0f, 0f, 0f);
+	    gl.glColor4f(0f, 0f, 0.0f, 0f);
 	
 	//normala povrchu
 	gl.glNormal3f(0,0,1);
@@ -158,30 +156,25 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	
 	// vykrelime ctverec
 	gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
-
+	
 	//vymazat stav
 	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
 	
-	//gl.glBindTexture(GL10.GL_TEXTURE_2D, cameraTexture[0]);
     }
  
   
     /**
-     * 90% ukradeno
-     * @see http://nhenze.net/?p=107
      * Volana pri kazdem novem framu
-     * @param bytes data z kamery v divnym formatu yuvs :)
+     * YUV funguje tak, ze nejdriv posila pro kazdy pixel jas 1B
+     * a pote posila pro 2 pixely 1B barvy... tedy 1. 2/3 souboru
+     * jsou ciste BW data, barvu muzu vklidu zahodit
+     * @param bytes data z kamery v divnym formatu yuv :)
      */
     public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
-	if(this.prevX == 0) return;	
-	int bwCounter=0;
-	int yuvsCounter=0;
-	for (int x=0; x < this.prevX; x++) {
-		System.arraycopy(yuvsSource, yuvsCounter, this.cameraFrame, bwCounter, this.prevY);
-		yuvsCounter=yuvsCounter+this.prevY;
-		bwCounter=bwCounter+this.prevY;
-	}
+	if(this.prevX == 0) return;
+	//if(this.cameraFrame != null) return; //pokud neni jeste zobrazeny predchozi obrazek	
+	System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
     }
     
     /**
