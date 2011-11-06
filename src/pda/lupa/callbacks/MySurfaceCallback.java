@@ -4,6 +4,7 @@ import pda.lupa.MyGLSurfaceView;
 import pda.lupa.Lupa;
 import android.R;
 import android.app.Activity;
+import android.content.res.Resources;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.util.Log;
@@ -40,11 +41,16 @@ import android.widget.Toast;
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 	    try {
-		if(true) {//nejaka podminka kdyz ho budu chtit zobrazit
+		if(activity.getResources().getBoolean(pda.lupa.R.bool.GL_view)) {//nejaka podminka kdyz ho budu chtit zobrazit
 		    camera.setPreviewCallback(new MyPreviewCallback(glCallback));
 		}
 		//else
 		camera.setPreviewDisplay(prevHolder);
+		
+		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
+		lupa.setInPreview(true);
+		lupa.zoom(5);
+		lupa.focus();
 	    }
 	    catch (Throwable t) {
 		Log.e("PreviewDemo-surfaceCallback",
@@ -57,19 +63,11 @@ import android.widget.Toast;
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 	    Camera.Parameters parameters = camera.getParameters();
 	    Camera.Size size = getBestPreviewSize(width, height, parameters);  
-	
 	    if (size!=null) {
 		parameters.setPreviewSize(size.width, size.height);
-		
 		//musime nastavit danou velikost do GLSurfaceView
 		this.glCallback.setPreviewSize(size);
-		
 		camera.setParameters(parameters);
-		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
-		
-		lupa.setInPreview(true);
-		lupa.zoom(5);
-		lupa.focus();
 	    }
 	}
 

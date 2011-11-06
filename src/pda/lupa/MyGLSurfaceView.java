@@ -56,7 +56,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      */
     public MyGLSurfaceView(Context c, AttributeSet a) {
 	super(c, a);
-	//this.context = c;
+	this.context = c;
 	
 	//nastaveni pruhlednosti pozadi!
 	this.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
@@ -139,8 +139,12 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	// posunme TODO
 	gl.glTranslatef(0.0f, 0.0f, -5.0f);
 	
-	//nabindujeme aktualni texturu
-	bindCameraTexture(gl);
+	//tady se bude rozhodovat, jestli je zobrazeno gl nebo "ne"
+	if(context.getResources().getBoolean(pda.lupa.R.bool.GL_view))
+	    bindCameraTexture(gl);//nabindujeme aktualni texturu
+	else
+	    gl.glColor4f(0f, 0f, 0f, 0f);
+	
 	//normala povrchu
 	gl.glNormal3f(0,0,1);
 	// povolime buffery
