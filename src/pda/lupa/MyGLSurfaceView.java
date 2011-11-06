@@ -23,46 +23,51 @@ import javax.microedition.khronos.opengles.GL10;
 public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Renderer {
     Context context;
     
+    /** buffer, do ktereho se nacita obrazek nahledu */
     private byte[] cameraFrame;
+    /** ukazatel na texturu */
     private int[] cameraTexture;
-    
+    /** velikost zobrazovaneho nahledu,
+     * nastavuje se v SetPreviewSize */
     private int prevY, prevX = 0;
-    
-    FloatBuffer cubeBuff;
-    FloatBuffer texBuff;
-    
-    
-    
-    private FloatBuffer textureBuffer;	// buffer holding the texture coordinates
+      
+    /** bufferm obsahuje mapovani textury */
+    private FloatBuffer textureBuffer;
     private float texture[] = {
-	// Mapping coordinates for the vertices
-	0.0f, 1.0f,		// top left	(V2)
-	0.0f, 0.0f,		// bottom left	(V1)
-	1.0f, 1.0f,		// top right	(V4)
-	1.0f, 0.0f		// bottom right	(V3)
+	0.0f, 1.0f, // 2
+	0.0f, 0.0f, // 1
+	1.0f, 1.0f, // 4
+	1.0f, 0.0f  // 3
     };
     
-    private FloatBuffer vertexBuffer;	// buffer holding the vertices
+    /** bufferm obsahuje souradnice vrcholu */
+    private FloatBuffer vertexBuffer;
     private float vertices[] = {
-	-1.0f, -1.0f,  0.0f,		// V1 - bottom left
-	-1.0f,  1.0f,  0.0f,		// V2 - top left
-	 1.0f, -1.0f,  0.0f,		// V3 - bottom right
-	 1.0f,  1.0f,  0.0f		// V4 - top right
+	-1.0f, -1.0f,  0.0f, // 1
+	-1.0f,  1.0f,  0.0f, // 2
+	 1.0f, -1.0f,  0.0f, // 3
+	 1.0f,  1.0f,  0.0f  // 4
     };
     
+    /**
+     * Konstruktor, vola se hned z XML layoutu v main activity
+     * @param c globalni kontext
+     * @param a atributy (id etc.)
+     */
     public MyGLSurfaceView(Context c, AttributeSet a) {
 	super(c, a);
-	this.context = c;
+	//this.context = c;
+	
 	//nastaveni pruhlednosti pozadi!
 	this.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
 	this.getHolder().setFormat(PixelFormat.TRANSLUCENT);
-
 	//nastavime render
 	this.setRenderer(this);		
 	//prej to je na nekterych zarizeni treba
 	this.setZOrderOnTop(true);
 	
-	// predpripravime si ctverec !!
+	// predpripravime si ctverec, vytvorime buffery
+	//zda se, ze to takhle zbesile delaj vsichni
 	ByteBuffer byteBuffer = ByteBuffer.allocateDirect(vertices.length * 4);
 	byteBuffer.order(ByteOrder.nativeOrder());
 	vertexBuffer = byteBuffer.asFloatBuffer();
@@ -73,110 +78,99 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	byteBuffer.order(ByteOrder.nativeOrder());
 	textureBuffer = byteBuffer.asFloatBuffer();
 	textureBuffer.put(texture);
-	textureBuffer.position(0);
-	 
+	textureBuffer.position(0); 
     }
     
-    public void setPreviewSize(Camera.Size size) {
-	
-	//zjistime rozmery nahledu!
-	this.prevX = size.width;
-	this.prevY = size.height;
-	int s = prevX*prevY;
-	Log.d("negative size", " " + s);
-	
-	cameraFrame = null;//new byte[s];
-    }
-    
+    /**
+     * Vytvoreni plochy
+     * @param gl
+     * @param config 
+     */
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-	// Load the texture for the square
-
-	gl.glEnable(GL10.GL_TEXTURE_2D);			//Enable Texture Mapping ( NEW )
-	gl.glShadeModel(GL10.GL_SMOOTH); 			//Enable Smooth Shading
-	gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f); 	//Black Background
-	gl.glClearDepthf(1.0f); 					//Depth Buffer Setup
-	gl.glEnable(GL10.GL_DEPTH_TEST); 			//Enables Depth Testing
-	gl.glDepthFunc(GL10.GL_LEQUAL); 			//The Type Of Depth Testing To Do
+	// povolime textury
+	gl.glEnable(GL10.GL_TEXTURE_2D);
+	//povolime Smooth Shading, potreba vyzkouset
+	gl.glShadeModel(GL10.GL_SMOOTH);
+	//pruhledne pozadi
+	gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	//depth buffer a depth testing, zjistit...
+	gl.glClearDepthf(1.0f);
+	gl.glEnable(GL10.GL_DEPTH_TEST);
+	gl.glDepthFunc(GL10.GL_LEQUAL); 
 	
-
-	//Really Nice Perspective Calculations
+	//perspektiva, casem asi zbytecny
 	gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_NICEST);
-	
-    
     }
     
+    /**
+     * Vola se pri zmene povrchu a pri jeho vytvoreni...
+     * @param gl
+     * @param width
+     * @param height 
+     */
     public void onSurfaceChanged(GL10 gl, int width, int height) { 
-	if(height == 0) { 						//Prevent A Divide By Zero By
-		height = 1; 						//Making Height Equal One
-	}
-	
-
-	gl.glViewport(0, 0, width, height); 	//Reset The Current Viewport
-	gl.glMatrixMode(GL10.GL_PROJECTION); 	//Select The Projection Matrix
-	gl.glLoadIdentity(); 					//Reset The Projection Matrix
-
-	//Calculate The Aspect Ratio Of The Window
-	GLU.gluPerspective(gl, 25.0f, (float)height / (float)width, 0.1f, 10.0f);
-	
-	
-
-	gl.glMatrixMode(GL10.GL_MODELVIEW); 	//Select The Modelview Matrix
-	gl.glLoadIdentity(); 
-
-    }
-
-    public void onDrawFrame(GL10 gl) {
-	// clear Screen and Depth Buffer
-	gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
-	if(cameraFrame == null) return;
-
-	// Reset the Modelview Matrix
+	if(height == 0) return;
+	//reset viewport
+	gl.glViewport(0, 0, width, height);
+	//vybrat projection matrix
+	gl.glMatrixMode(GL10.GL_PROJECTION);
+	// a matici vyresetovat
 	gl.glLoadIdentity();
 
+	//tohle je treba nejak predelat!! TODO
+	GLU.gluPerspective(gl, 25.0f, (float)height / (float)width, 0.1f, 10.0f);
+
+	//vybrat modelview matrix
+	gl.glMatrixMode(GL10.GL_MODELVIEW);
+	gl.glLoadIdentity(); 
+    }
+
+    /**
+     * Vykresleni framu
+     * @param gl 
+     */
+    public void onDrawFrame(GL10 gl) {
+	if(cameraFrame == null) return;
 	
-	// Drawing
-	gl.glTranslatef(0.0f, 0.0f, -5.0f);		// move 5 units INTO the screen
-					
-	// is the same as moving the camera 5 units away
+	//vymazat buffery
+	gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+	// porad modelview matrix
+	gl.glLoadIdentity();
+	// posunme TODO
+	gl.glTranslatef(0.0f, 0.0f, -5.0f);
 	
-	
-	
-	gl.glNormal3f(0,0,1);
+	//nabindujeme aktualni texturu
 	bindCameraTexture(gl);
-	// Point to our buffers
+	//normala povrchu
+	gl.glNormal3f(0,0,1);
+	// povolime buffery
 	gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-
-	// Set the face rotation
+	// nastavit face rotation
 	gl.glFrontFace(GL10.GL_CW);
-	// set the colour for the square
-	//gl.glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
-
-	// Point to our vertex buffer
+	// ukazatel na vertex buffer
 	gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
 	gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, textureBuffer);
-
-	// Draw the vertices as triangle strip
+	
+	// vykrelime ctverec
 	gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
 
-	//Disable the client state before leaving
+	//vymazat stav
 	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
 	
-	gl.glBindTexture(GL10.GL_TEXTURE_2D, cameraTexture[0]);;
+	//gl.glBindTexture(GL10.GL_TEXTURE_2D, cameraTexture[0]);
     }
  
   
     /**
+     * 90% ukradeno
+     * @see http://nhenze.net/?p=107
      * Volana pri kazdem novem framu
-     * @param bytes data z kamery v divnym formatu :)
+     * @param bytes data z kamery v divnym formatu yuvs :)
      */
     public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
-	if(this.prevX == 0) return;
-	//Log.d("callback", this.prevX + " " + this.prevY);
-	
-	cameraFrame = new byte[yuvsSource.length];
-	
+	if(this.prevX == 0) return;	
 	int bwCounter=0;
 	int yuvsCounter=0;
 	for (int x=0; x < this.prevX; x++) {
@@ -187,39 +181,40 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     }
     
     /**
-     * Generates a texture from the black and white array filled by the onPreviewFrame
-     * method.
+     * 100% ukradeno
+     * @see http://nhenze.net/?p=172
      */
     void bindCameraTexture(GL10 gl) {
 	if(cameraFrame == null) return;
 	    try {
-		    if (cameraTexture==null)
-			    cameraTexture=new int[1];
-		    else
-			    gl.glDeleteTextures(1, cameraTexture, 0);
+		if (cameraTexture==null)
+			cameraTexture=new int[1];
+		else
+			gl.glDeleteTextures(1, cameraTexture, 0);
 
-		    gl.glGenTextures(1, cameraTexture, 0);
-		    int tex = cameraTexture[0];
-		    gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
-		    gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE, 
-			    this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
-			    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame));
-		    
-		    gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
+		gl.glGenTextures(1, cameraTexture, 0);
+		int tex = cameraTexture[0];
+		gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
+		gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE, 
+			this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
+			GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame));
+
+		gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
 	    }
 	    catch (Exception e) {
 		Log.d("bindcameratexture", "" + e.getMessage());
 	    }
     }
     
-    /*
-    FloatBuffer makeFloatBuffer(float[] arr) {
-	ByteBuffer bb = ByteBuffer.allocateDirect(arr.length*4);
-	bb.order(ByteOrder.nativeOrder());
-	FloatBuffer fb = bb.asFloatBuffer();
-	fb.put(arr);
-	fb.position(0);
-	return fb;
-    }*/
- 
+    /**
+     * Nastavi aktualni velikost zobrazovaneho nahledu
+     * @param size Velikost aktualniho nahledu!
+     */
+    public void setPreviewSize(Camera.Size size) {
+	//zjistime rozmery nahledu
+	this.prevX = size.width;
+	this.prevY = size.height;
+	// vytvorime buffer pro obrazek o velikosti sirka x vyska
+	cameraFrame = new byte[prevX*prevY];
+    }
 }
