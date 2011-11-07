@@ -1,17 +1,12 @@
 package pda.lupa;
 
-import android.R.array;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
-import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
