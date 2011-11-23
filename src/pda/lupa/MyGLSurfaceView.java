@@ -1,6 +1,9 @@
 package pda.lupa;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
@@ -10,19 +13,28 @@ import android.util.Log;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Renderer {
+public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Renderer, Camera.PreviewCallback {
     Context context;
     
     /** buffer, do ktereho se nacita obrazek nahledu */
     private byte[] cameraFrame;
+    
+    /** buffer pro nacteni dat z kamery*/
+    private byte[] previewBuffer1;
     /** ukazatel na texturu */
     private int[] cameraTexture;
     /** velikost zobrazovaneho nahledu,
      * nastavuje se v SetPreviewSize */
     private int prevY, prevX = 0;
+    
+    /** Kvuli bufferum potrebuju instanci kamery */
+    private Camera camera = null;
       
     /** bufferm obsahuje mapovani textury */
     private FloatBuffer textureBuffer;
@@ -50,6 +62,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     public MyGLSurfaceView(Context c, AttributeSet a) {
 	super(c, a);
 	this.context = c;
+	
+	//spustime jako samostatne vlakno
+	//new Thread(this).start();
 	
 	//nastaveni pruhlednosti pozadi!
 	this.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
@@ -124,6 +139,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      */
     public void onDrawFrame(GL10 gl) {
 	if(cameraFrame == null) return;
+	//cameraFrame = createContrast(cameraFrame, 30);
+	
+	
 	
 	//vymazat buffery
 	gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
@@ -138,6 +156,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	else
 	    gl.glColor4f(0f, 0f, 0.0f, 0f);
 	
+	
 	//normala povrchu
 	gl.glNormal3f(0,0,1);
 	// povolime buffery
@@ -149,14 +168,43 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
 	gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, textureBuffer);
 	
+	//gl.glBlendFunc(GL10.GL_ONE, GL10.GL_SRC_ALPHA);
+	//gl.glColor4f(1f, 1f, 1f, 0.7f);
+	
+	
 	// vykrelime ctverec
 	gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
 	
 	//vymazat stav
 	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-	
     }
+    
+   /* private ColorMatrixColorFilter setContrast(float contrast) {
+	float scale = contrast + 1.f;
+	float translate = (-.5f * scale + .5f) * 255.f;
+	float[] array = new float[] {
+	    scale, 0, 0, 0, translate,
+	    0, scale, 0, 0, translate,
+	    0, 0, scale, 0, translate,
+	    0, 0, 0, 1, 0};
+	ColorMatrix matrix = new ColorMatrix(array);
+	ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
+	return filter;
+    }*/
+    
+    public byte[] createContrast(byte[] src, double value) {
+	// get contrast value
+	double contrast = Math.pow((100 + value) / 100, 2);
+	// scan through all pixels
+	for(int x = 0; x < src.length; x++) {
+	    src[x] = (byte)(((((Color.alpha(src[x]) / 255.0) - 0.5) * contrast) + 0.5) * 255.0);
+	    //src[x] = (out > 255) ? (byte) 255 : out;
+	    //src[x] = (out < 0) ? (byte) 0 : out;
+	}
+	return src;
+    }
+
  
   
     /**
@@ -166,10 +214,23 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * jsou ciste BW data, barvu muzu vklidu zahodit
      * @param bytes data z kamery v divnym formatu yuv :)
      */
+    Date start;
+    int fcount = 0;
+    
     public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
 	if(this.prevX == 0) return;
-	//if(this.cameraFrame != null) return; //pokud neni jeste zobrazeny predchozi obrazek	
+	if(start == null){
+		start = new Date();
+	}
+	fcount++;
+	if(fcount % 100 == 0){
+		double ms = (new Date()).getTime() - start.getTime();
+		Log.i("AR","fps:" + fcount/(ms/1000.0));
+	}
+	
 	System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
+	
+	camera.addCallbackBuffer(yuvsSource);
     }
     
     /**
@@ -180,9 +241,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	if(cameraFrame == null) return;
 	    try {
 		if (cameraTexture==null)
-			cameraTexture=new int[1];
+		    cameraTexture=new int[1];
 		else
-			gl.glDeleteTextures(1, cameraTexture, 0);
+		    gl.glDeleteTextures(1, cameraTexture, 0);
 
 		gl.glGenTextures(1, cameraTexture, 0);
 		int tex = cameraTexture[0];
@@ -192,6 +253,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 			GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame));
 
 		gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
+		
+		//vlozime bufffer zpet do fronty
+		//this.camera.addCallbackBuffer(previewBuffer1);
 	    }
 	    catch (Exception e) {
 		Log.d("bindcameratexture", "" + e.getMessage());
@@ -202,11 +266,20 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * Nastavi aktualni velikost zobrazovaneho nahledu
      * @param size Velikost aktualniho nahledu!
      */
-    public void setPreviewSize(Camera.Size size) {
+    public void setPreviewSize(Camera.Size size, Camera camera) {
 	//zjistime rozmery nahledu
 	this.prevX = size.width;
 	this.prevY = size.height;
+	
+	this.camera = camera;
 	// vytvorime buffer pro obrazek o velikosti sirka x vyska
-	cameraFrame = new byte[prevX*prevY];
+	
+	this.cameraFrame = new byte[prevX*prevY];
+	
+	this.previewBuffer1 = new byte[prevX*prevY*12/8];
+	this.camera.addCallbackBuffer(this.previewBuffer1);
+    }
+
+    public void run() {
     }
 }

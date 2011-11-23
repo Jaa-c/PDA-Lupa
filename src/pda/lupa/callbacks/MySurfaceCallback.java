@@ -4,19 +4,32 @@ import pda.lupa.MyGLSurfaceView;
 import pda.lupa.Lupa;
 import android.R;
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ImageFormat;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.hardware.Camera.Size;
 import android.os.Handler;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
+import android.widget.SlidingDrawer.OnDrawerCloseListener;
 import android.widget.Toast;
+import java.io.ByteArrayOutputStream;
+import java.util.Date;
 
     /**
      * Callbeck pro surface
      */
-    public final class MySurfaceCallback implements SurfaceHolder.Callback {
-	Activity activity;
+    public final class MySurfaceCallback extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
 	Lupa lupa;
 	
 	Camera camera;
@@ -24,15 +37,36 @@ import android.widget.Toast;
 	
 	MyGLSurfaceView glCallback;
 	
+	
+	  /** buffer, do ktereho se nacita obrazek nahledu */
+	private byte[] cameraFrame;
 
-	public MySurfaceCallback(Activity activity, Lupa lupa) {
+	/** buffer pro nacteni dat z kamery*/
+	private byte[] previewBuffer1;
+	/** velikost zobrazovaneho nahledu,
+	 * nastavuje se v SetPreviewSize */
+	private int prevY, prevX = 0;
+	
+	Context c;
+	
+
+	public MySurfaceCallback(Context c, AttributeSet s) {
+	    super(c, s);
+	    this.c = c;
+	    setWillNotDraw(false);
+
+	}
+	
+	public void init(Lupa lupa) {
 	    this.lupa = lupa;
-	    this.activity = activity;
 	    
 	    this.glCallback = lupa.getGlCallback();
 	    
 	    camera = lupa.getCamera();
-	    prevHolder = lupa.getPrevHolder();
+	    
+	    prevHolder = this.getHolder();
+	    prevHolder.addCallback(this);
+	    prevHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	}
 	
 	
@@ -48,15 +82,22 @@ import android.widget.Toast;
 	    if (size!=null) {
 		parameters.setPreviewSize(size.width, size.height);
 		//musime nastavit danou velikost do GLSurfaceView
-		this.glCallback.setPreviewSize(size);
+		this.glCallback.setPreviewSize(size, this.camera);
+		this.setPreviewSize(size, this.camera);
 		camera.setParameters(parameters);
 	    }
 	    
 	    try {
-		if(activity.getResources().getBoolean(pda.lupa.R.bool.GL_view)) //nejaka podminka kdyz ho budu chtit zobrazit
-		    camera.setPreviewCallback(new MyPreviewCallback(glCallback));
-		//else
-		    camera.setPreviewDisplay(prevHolder);
+		if(c.getResources().getBoolean(pda.lupa.R.bool.GL_view)) { //nejaka podminka kdyz ho budu chtit zobrazit
+		    camera.setPreviewCallbackWithBuffer(glCallback);
+		    
+		}
+		else {
+		    //camera.setPreviewDisplay(prevHolder);
+		    camera.setPreviewCallbackWithBuffer(this);
+		    camera.setPreviewDisplay(null);
+		}
+		    
 		
 		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
 		lupa.setInPreview(true);
@@ -66,14 +107,76 @@ import android.widget.Toast;
 	    catch (Throwable t) {
 		Log.e("PreviewDemo-surfaceCallback",
 			"Exception in setPreviewDisplay()", t);
-		Toast.makeText(activity, t.getMessage(), Toast.LENGTH_LONG).show();
-	  }
+		Toast.makeText(c, t.getMessage(), Toast.LENGTH_LONG).show();
+	    }
+	
 	}
 	
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 	    lupa.close();
+	}
+	
+	
+	@Override
+	protected void onDraw(Canvas canvas) {
+	    //Log.d("onDraw", "+1");
+	    
+	    if(cameraFrame == null) {
+		invalidate();
+		return;
+	    }
+	    Paint paint = new Paint();
+	    
+	    YuvImage yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
+	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
+	    byte[] jdata = baos.toByteArray();
+
+	    // Convert to Bitmap
+	    Bitmap bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
+
+	    
+	    //Bitmap bitmap = BitmapFactory.decodeByteArray(cameraFrame, 0, cameraFrame.length);
+	    //if(bitmap == null ) Log.d("nullpointer", "bitmap");
+	    canvas.drawBitmap(bmp , 0, 0, paint);
+	    //canvas.drawPaint(paint);
+	    invalidate();
+	}
+
+	
+	Date start;
+	int fcount = 0;
+	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
+	    if(this.prevX == 0) return;
+	    if(start == null){
+		    start = new Date();
+	    }
+	    fcount++;
+	    if(fcount % 100 == 0){
+		    double ms = (new Date()).getTime() - start.getTime();
+		    Log.i("AR","fps:" + fcount/(ms/1000.0));
+	    }
+
+	    //System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
+	    this.cameraFrame = yuvsSource;
+
+	    camera.addCallbackBuffer(yuvsSource);
+	}
+
+	public void setPreviewSize(Camera.Size size, Camera camera) {
+	    //zjistime rozmery nahledu
+	    this.prevX = size.width;
+	    this.prevY = size.height;
+
+	    this.camera = camera;
+	    // vytvorime buffer pro obrazek o velikosti sirka x vyska
+
+	    this.cameraFrame = new byte[prevX*prevY*3/2];
+
+	    this.previewBuffer1 = new byte[prevX*prevY*3/2];
+	    this.camera.addCallbackBuffer(this.previewBuffer1);
 	}
 
 	/**

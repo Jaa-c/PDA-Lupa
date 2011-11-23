@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 import pda.lupa.callbacks.MyAutoFocusCallback;
+import pda.temp.MyPreviewCallback;
 import pda.lupa.callbacks.MySurfaceCallback;
 
 /**
@@ -27,9 +28,9 @@ public final class Lupa {
     private Camera camera = null;
     
     /* Blbosti aby to fungovalo... */
-    private SurfaceView prev = null;
+    private MySurfaceCallback prev = null;
     private SurfaceHolder prevHolder = null;
-    
+        
     private MyGLSurfaceView glView;
     
     /** Kontext */
@@ -53,7 +54,7 @@ public final class Lupa {
     public Lupa(Activity main) {//, SurfaceView prev) {
 	this.activity = main;
 	this.glView = (MyGLSurfaceView) this.activity.findViewById(R.id.gl_preview);
-	this.prev = (SurfaceView) this.activity.findViewById(R.id.preview);
+	this.prev = (MySurfaceCallback) this.activity.findViewById(R.id.preview);
 	
 	//je to jeste potreba?
 	Display display = activity.getWindowManager().getDefaultDisplay();
@@ -62,10 +63,7 @@ public final class Lupa {
 	this.handler = new ActionHandler(this);
 	this.open();
 	
-	prevHolder = prev.getHolder();	
-	MySurfaceCallback surface = new MySurfaceCallback(activity, this);	
-	prevHolder.addCallback(surface);
-	prevHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+	this.prev.init(this);	
 	
     }
     
@@ -121,7 +119,7 @@ public final class Lupa {
     public void close() {
 	System.exit(0);
 	if (camera != null) {
-	    prevHolder.addCallback(null); //smazeme klasickej preview 
+	    //prevHolder.addCallback(null); //smazeme klasickej preview 
 	    autoFocus.setHandler(null, 0); //smazeme handler
 	    camera.setPreviewCallback(null); //smazeme callback na kameru
 	    camera.stopPreview(); //tady konci ZOBRAZOVANI NAHLEDU
@@ -136,8 +134,8 @@ public final class Lupa {
 	return this.glView;
     
     }
-
-
+    
+    
     public boolean inPreview() {
 	return inPreview;
     }
@@ -146,8 +144,5 @@ public final class Lupa {
     }
     public Camera getCamera() {
 	return camera;
-    }
-    public SurfaceHolder getPrevHolder() {
-	return prevHolder;
-    }   
+    }  
 }
