@@ -2,26 +2,22 @@ package pda.lupa.callbacks;
 
 import pda.lupa.MyGLSurfaceView;
 import pda.lupa.Lupa;
-import android.R;
-import android.app.Activity;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
-import android.hardware.Camera.Size;
-import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.widget.SlidingDrawer.OnDrawerCloseListener;
 import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
 import java.util.Date;
@@ -83,14 +79,16 @@ import java.util.Date;
 		parameters.setPreviewSize(size.width, size.height);
 		//musime nastavit danou velikost do GLSurfaceView
 		this.glCallback.setPreviewSize(size, this.camera);
+		
 		this.setPreviewSize(size, this.camera);
+		
 		camera.setParameters(parameters);
 	    }
 	    
 	    try {
 		if(c.getResources().getBoolean(pda.lupa.R.bool.GL_view)) { //nejaka podminka kdyz ho budu chtit zobrazit
 		    camera.setPreviewCallbackWithBuffer(glCallback);
-		    
+		    camera.setPreviewDisplay(null);
 		}
 		else {
 		    //camera.setPreviewDisplay(prevHolder);
@@ -119,6 +117,13 @@ import java.util.Date;
 	}
 	
 	
+	YuvImage yuvimage;
+	ByteArrayOutputStream baos;
+	byte[] jdata;
+	
+	Paint paint;
+	Bitmap bmp;
+	ColorMatrixColorFilter contrast = setContrast(10f);
 	@Override
 	protected void onDraw(Canvas canvas) {
 	    //Log.d("onDraw", "+1");
@@ -127,22 +132,49 @@ import java.util.Date;
 		invalidate();
 		return;
 	    }
-	    Paint paint = new Paint();
+	    paint = new Paint();
 	    
-	    YuvImage yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
-	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
+	    baos = new ByteArrayOutputStream();
 	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
-	    byte[] jdata = baos.toByteArray();
+	    jdata = baos.toByteArray();
 
 	    // Convert to Bitmap
-	    Bitmap bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
-
+	    bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
+	        
 	    
-	    //Bitmap bitmap = BitmapFactory.decodeByteArray(cameraFrame, 0, cameraFrame.length);
-	    //if(bitmap == null ) Log.d("nullpointer", "bitmap");
+	    paint.setColorFilter(contrast);
 	    canvas.drawBitmap(bmp , 0, 0, paint);
+	    
 	    //canvas.drawPaint(paint);
 	    invalidate();
+	}
+	
+	private ColorMatrixColorFilter setContrast(float contrast) {
+	    ColorMatrix bw = new ColorMatrix();
+	    bw.setSaturation(0);  //greyscale
+	    
+	    
+	    float[] array = new float[] {
+		-1, 0,  0, 1, 0,
+		0, -1,  0, 1, 0,
+		0,  0, -1, 1, 0,
+		1,  1,  1, 1, 0};
+	    
+	    ColorMatrix invert = new ColorMatrix(array);
+	    
+	    float scale = contrast + 1.f;
+	    float translate = (-.5f * scale + .5f) * 255.f;
+	    array = new float[] {
+		scale, 0, 0, 0, translate,
+		0, scale, 0, 0, translate,
+		0, 0, scale, 0, translate,
+		0, 0, 0, 1, 0};
+	    ColorMatrix matrix = new ColorMatrix(array);
+	    matrix.setConcat(invert, bw);
+	    
+	    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
+	    return filter;
 	}
 
 	
@@ -159,7 +191,7 @@ import java.util.Date;
 		    Log.i("AR","fps:" + fcount/(ms/1000.0));
 	    }
 
-	    //System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
+	   // System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
 	    this.cameraFrame = yuvsSource;
 
 	    camera.addCallbackBuffer(yuvsSource);
@@ -205,8 +237,7 @@ import java.util.Date;
 			}
 		    }
 		}
-	    }
-
+	    }	    
 	    return result;
 	}
     }

@@ -1,9 +1,8 @@
 package pda.lupa;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
@@ -14,8 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -24,6 +21,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     
     /** buffer, do ktereho se nacita obrazek nahledu */
     private byte[] cameraFrame;
+    //ByteBuffer cameraFrame = null;
     
     /** buffer pro nacteni dat z kamery*/
     private byte[] previewBuffer1;
@@ -130,7 +128,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 
 	//vybrat modelview matrix
 	gl.glMatrixMode(GL10.GL_MODELVIEW);
-	gl.glLoadIdentity(); 
+	gl.glLoadIdentity(); 		
     }
 
     /**
@@ -143,6 +141,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	
 	
 	
+	
 	//vymazat buffery
 	gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
 	// porad modelview matrix
@@ -150,12 +149,13 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	// posunme TODO
 	gl.glTranslatef(0.0f, 0.0f, -5.0f);
 	
+	this.initTexture(gl);
+	
 	//tady se bude rozhodovat, jestli je zobrazeno gl nebo "ne"
 	if(context.getResources().getBoolean(pda.lupa.R.bool.GL_view))
 	    bindCameraTexture(gl);//nabindujeme aktualni texturu
 	else
 	    gl.glColor4f(0f, 0f, 0.0f, 0f);
-	
 	
 	//normala povrchu
 	gl.glNormal3f(0,0,1);
@@ -179,19 +179,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
     }
-    
-   /* private ColorMatrixColorFilter setContrast(float contrast) {
-	float scale = contrast + 1.f;
-	float translate = (-.5f * scale + .5f) * 255.f;
-	float[] array = new float[] {
-	    scale, 0, 0, 0, translate,
-	    0, scale, 0, 0, translate,
-	    0, 0, scale, 0, translate,
-	    0, 0, 0, 1, 0};
-	ColorMatrix matrix = new ColorMatrix(array);
-	ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
-	return filter;
-    }*/
+
     
     public byte[] createContrast(byte[] src, double value) {
 	// get contrast value
@@ -206,7 +194,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     }
 
  
-  
+ 
     /**
      * Volana pri kazdem novem framu
      * YUV funguje tak, ze nejdriv posila pro kazdy pixel jas 1B
@@ -229,37 +217,46 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	}
 	
 	System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
+		
+	//this.cameraFrame = ByteBuffer.wrap(yuvsSource, 0, prevX*prevY);
 	
 	camera.addCallbackBuffer(yuvsSource);
     }
     
+    
+    int tex = -1;
+    void initTexture(GL10 gl) {
+	if(tex != -1) return; //tohle se provede pouze jednou
+	cameraTexture = new int[1];
+	gl.glGenTextures(1, cameraTexture, 0);
+	tex = cameraTexture[0];
+	gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
+	gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE, 
+		this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
+		GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame));
+
+	gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
+    }
     /**
-     * 100% ukradeno
+     * insirovano zde, ale uz znacne upraveno
      * @see http://nhenze.net/?p=172
      */
     void bindCameraTexture(GL10 gl) {
 	if(cameraFrame == null) return;
-	    try {
-		if (cameraTexture==null)
-		    cameraTexture=new int[1];
-		else
-		    gl.glDeleteTextures(1, cameraTexture, 0);
+	try {
+	    if (cameraTexture==null)
+		cameraTexture=new int[1];
+	    else
+		gl.glDeleteTextures(1, cameraTexture, 0);
 
-		gl.glGenTextures(1, cameraTexture, 0);
-		int tex = cameraTexture[0];
-		gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
-		gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE, 
-			this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
-			GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame));
-
-		gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
-		
-		//vlozime bufffer zpet do fronty
-		//this.camera.addCallbackBuffer(previewBuffer1);
-	    }
-	    catch (Exception e) {
-		Log.d("bindcameratexture", "" + e.getMessage());
-	    }
+	    gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
+	    gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE,
+		    this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
+		    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame)); 
+	}
+	catch (Exception e) {
+	    Log.d("bindcameratexture", "" + e.getMessage());
+	}
     }
     
     /**
@@ -280,6 +277,4 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	this.camera.addCallbackBuffer(this.previewBuffer1);
     }
 
-    public void run() {
-    }
 }
