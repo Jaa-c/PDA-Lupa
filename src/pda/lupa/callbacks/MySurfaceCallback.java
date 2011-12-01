@@ -1,5 +1,9 @@
 package pda.lupa.callbacks;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import pda.lupa.MyGLSurfaceView;
 import pda.lupa.Lupa;
 import android.content.Context;
@@ -10,7 +14,6 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
-import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
@@ -20,6 +23,13 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Date;
 
     /**
@@ -45,7 +55,16 @@ import java.util.Date;
 	
 	Context c;
 	
+	//nacteme bordel z NDK
+	static {
+	    System.loadLibrary("rgb");
+	}
+	
+	//deklarace nativní metody
+	public native int[] NativeYuv2rgb(byte[] imageIn, int widthIn, int heightIn,
+		int size, int widthOut, int heightOut);
 
+	
 	public MySurfaceCallback(Context c, AttributeSet s) {
 	    super(c, s);
 	    this.c = c;
@@ -120,13 +139,16 @@ import java.util.Date;
 	YuvImage yuvimage;
 	ByteArrayOutputStream baos;
 	byte[] jdata;
+	int[] out = new int[320*240*2];
+	
+	IntBuffer rgb;
 	
 	Paint paint;
 	Bitmap bmp;
-	ColorMatrixColorFilter contrast = setContrast(10f);
+	ColorMatrixColorFilter filter = setContrast(10f);
+	int i = 0;
 	@Override
-	protected void onDraw(Canvas canvas) {
-	    //Log.d("onDraw", "+1");
+	protected void onDraw(Canvas canvas) {	    
 	    
 	    if(cameraFrame == null) {
 		invalidate();
@@ -134,16 +156,33 @@ import java.util.Date;
 	    }
 	    paint = new Paint();
 	    
+	    if(true) {
+	    
+		Log.d("onDraw", "calling NativeYuv2rgb here:");
+		
+		 out = NativeYuv2rgb(this.cameraFrame, this.prevX, this.prevY,
+			this.prevX * this.prevY * 2, this.prevX, this.prevY);
+		
+		Log.d("onDraw", "finished NativeYuv2rgb here ^");
+
+
+		canvas.drawBitmap(out, 0, prevX, 0, 0, prevX, prevY, true, paint);
+		
+
+		invalidate();return; 
+	    }
+	    
 	    yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
+	    
 	    baos = new ByteArrayOutputStream();
 	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
 	    jdata = baos.toByteArray();
 
 	    // Convert to Bitmap
 	    bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
-	        
+
 	    
-	    paint.setColorFilter(contrast);
+	    paint.setColorFilter(filter);
 	    canvas.drawBitmap(bmp , 0, 0, paint);
 	    
 	    //canvas.drawPaint(paint);
@@ -151,29 +190,39 @@ import java.util.Date;
 	}
 	
 	private ColorMatrixColorFilter setContrast(float contrast) {
+	    ColorMatrix output = new ColorMatrix();
+	    
+	    
 	    ColorMatrix bw = new ColorMatrix();
 	    bw.setSaturation(0);  //greyscale
 	    
-	    
-	    float[] array = new float[] {
+	    ColorMatrix invert = new ColorMatrix(new float[] {
 		-1, 0,  0, 1, 0,
 		0, -1,  0, 1, 0,
 		0,  0, -1, 1, 0,
-		1,  1,  1, 1, 0};
+		1,  1,  1, 1, 0});
 	    
-	    ColorMatrix invert = new ColorMatrix(array);
+	    ColorMatrix chageColor = new ColorMatrix(new float[] {
+		1, 1, 1, 0, 0,
+		0, 1, 0, 0, 0,
+		0, 0, 1, 0, 0,
+		0, 0, 0, 1, 0});
 	    
 	    float scale = contrast + 1.f;
 	    float translate = (-.5f * scale + .5f) * 255.f;
-	    array = new float[] {
+	    ColorMatrix contr = new ColorMatrix(new float[] {
 		scale, 0, 0, 0, translate,
 		0, scale, 0, 0, translate,
 		0, 0, scale, 0, translate,
-		0, 0, 0, 1, 0};
-	    ColorMatrix matrix = new ColorMatrix(array);
-	    matrix.setConcat(invert, bw);
+		0, 0, 0, 1, 0});
 	    
-	    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
+	    
+	    output.setConcat(output, bw);
+	    //output.setConcat(output, invert);	    
+	    //output.setConcat(output, contr);
+	    //output.setConcat(output, chageColor);
+	    
+	    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(output);
 	    return filter;
 	}
 
@@ -181,6 +230,19 @@ import java.util.Date;
 	Date start;
 	int fcount = 0;
 	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
+
+	    /*File f = new File("/sdcard/yuvsdata.bin");
+	     * try {
+		FileOutputStream fOut = new FileOutputStream(f);
+		OutputStreamWriter osw = new OutputStreamWriter(fOut); 
+		fOut.write(yuvsSource);
+		osw.flush();
+		osw.close();
+	    } catch (IOException ex) {
+		Logger.getLogger(MySurfaceCallback.class.getName()).log(Level.SEVERE, null, ex);
+	    }
+	     System.exit(0);*/
+
 	    if(this.prevX == 0) return;
 	    if(start == null){
 		    start = new Date();
@@ -191,7 +253,6 @@ import java.util.Date;
 		    Log.i("AR","fps:" + fcount/(ms/1000.0));
 	    }
 
-	   // System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
 	    this.cameraFrame = yuvsSource;
 
 	    camera.addCallbackBuffer(yuvsSource);
