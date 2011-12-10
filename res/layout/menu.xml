@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_nastaveni"
+	  android:title="@string/menu_nastaveni_barev">
+	<menu>
+	    <item android:id="@+id/menu_barevny"
+		  android:title="@string/menu_barevny" />
+	    <item android:id="@+id/menu_cernobily"
+		  android:title="@string/menu_cernobily" />		  
+	    <item android:id="@+id/menu_zluty"
+		  android:title="@string/menu_zluty" />
+	</menu>
+    </item>
+
+</menu>

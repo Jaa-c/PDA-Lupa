@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PDA Lupa</string>
-    <string name="err_noZoom">Zařízení bohužel nepodporuje zoom!</string>
+    <string name="err_noZoom">vaše zařízení bohužel nepodporuje zoom!</string>  
+    
+    <string name="menu_nastaveni_barev">Nastavení barevných režimů</string>
+    <string name="menu_barevny">Barevný režim</string>
+    <string name="menu_cernobily">Černobílý režim</string>
+    <string name="menu_zluty">Žlutočerný režim</string>
+    
 </resources>
