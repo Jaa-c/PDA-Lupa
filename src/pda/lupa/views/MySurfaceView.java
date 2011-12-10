@@ -33,8 +33,7 @@ import pda.lupa.Settings;
      * Callbeck pro surface
      */
     public final class MySurfaceView extends SurfaceView 
-    implements SurfaceHolder.Callback, Camera.PreviewCallback,
-    SurfaceView.OnTouchListener {
+    implements SurfaceHolder.Callback, SurfaceView.OnTouchListener {
 	Lupa lupa;
 	
 	Camera camera;
@@ -64,10 +63,7 @@ import pda.lupa.Settings;
 	    this.gestureDetector = new GestureDetector(new MyGestureDetector());
 	    
 	    this.setWillNotDraw(true);
-	    this.setOnTouchListener(this);
-	    
-	    //this.setZOrderOnTop(true);
-	    
+	    this.setOnTouchListener(this);  
 	}
 	
 	public void init(Lupa lupa) {
@@ -98,38 +94,54 @@ import pda.lupa.Settings;
 		parameters.setPreviewSize(size.width, size.height);
 		//musime nastavit danou velikost do GLSurfaceView
 		this.glCallback.setPreviewSize(size, this.camera);
+		this.setPreviewSize(size, this.camera);
 		camera.setParameters(parameters);
 	    }
 	    
 	    this.changeView(Settings.isGlView());
 
-	    //camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
-	    lupa.setInPreview(true);
 	    lupa.zoom();
-	    lupa.focus();
 	}
 	
 	public void changeView(boolean glView) {
 	    try {
-		
+		lupa.setInPreview(false);
 		camera.stopPreview();
-		if(glView) {
+		this.setWillNotDraw(true);
+		
+		if(glView) { //zobrazujeme pres OpenGL
 		    glCallback.setVisibility(View.VISIBLE);
-		    glCallback.initBuffer();
-		    camera.setPreviewCallbackWithBuffer(glCallback);
+		    
+		    //glCallback.initBuffer();
+		    //camera.setPreviewCallbackWithBuffer(glCallback);
 		    camera.setPreviewDisplay(null);
 		}
-		else {
-		    glCallback.setVisibility(View.INVISIBLE);
-		    camera.setPreviewDisplay(prevHolder);
-		    camera.setPreviewCallbackWithBuffer(null);
-		    //camera.setPreviewCallbackWithBuffer(this);
-		    //camera.setPreviewDisplay(null);
+		else { //zobrazujeme pres surfaceview
+		    glCallback.setVisibility(View.INVISIBLE);	
+		    
+		   // camera.setPreviewCallbackWithBuffer(null);
+		    if(Settings.isStopView()) {  //zastavena obrazovka
+			camera.setPreviewDisplay(null);
+			this.setWillNotDraw(false);
+			return;
+		    }
+		    else
+			camera.setPreviewDisplay(prevHolder);
+		    /*
+		    this.setWillNotDraw(false);
+		    camera.setPreviewCallbackWithBuffer(this);
+		    camera.setPreviewDisplay(null);*/
 		}
+		
+		glCallback.initBuffer();
+		camera.setPreviewCallbackWithBuffer(glCallback);
 		camera.startPreview();
+		lupa.setInPreview(true);
+		lupa.focus();
 	    }
 	    catch(Throwable t) {
-		Log.e("onSurfaceChanged", "stala se smula v setPreviewDisplay");
+		Log.e("onSurfaceChanged", "stala se smula v setPreviewDisplay: " 
+			+ t.getMessage());
 	    }
 	}
 	
@@ -140,44 +152,41 @@ import pda.lupa.Settings;
 	}
 	
 	
-	YuvImage yuvimage;
-	ByteArrayOutputStream baos;
-	byte[] jdata;
-	int[] out = new int[320*240];
-	
-	IntBuffer rgb;
-	
-	Paint paint = new Paint();
 	Bitmap bmp;
-	ColorMatrixColorFilter filter = setContrast(10f);
+	Paint paint = new Paint();
+	ColorMatrixColorFilter filter;
 	
 	@Override
 	protected void onDraw(Canvas canvas) {
-	    if(true || cameraFrame == null) {
+	    if(bmp == null) {
 		invalidate();
 		return;
 	    }
-	   
-	    yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
 	    
-	    baos = new ByteArrayOutputStream();
-	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
-	    jdata = baos.toByteArray();
-
-	    // Convert to Bitmap
-	    bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
-
-	    
+	    filter = setFilter(Settings.getContrast());
 	    paint.setColorFilter(filter);
 	    canvas.drawBitmap(bmp , 0, 0, paint);
 	    
-	    //canvas.drawPaint(paint);
 	    invalidate();
 	}
 	
-	private ColorMatrixColorFilter setContrast(float contrast) {
-	    ColorMatrix output = new ColorMatrix();
+	public void createBitmap(byte[] data) {
+	    YuvImage yuvimage;
+	    ByteArrayOutputStream baos;
 	    
+	    yuvimage=new YuvImage(data, ImageFormat.NV21, prevX, prevY, null);
+	    
+	    baos = new ByteArrayOutputStream();
+	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
+
+	    // Convert to Bitmap
+	    bmp = BitmapFactory.decodeByteArray(baos.toByteArray(), 0, baos.size());
+	    isInverted = Settings.isInverted();
+	}
+	
+	private boolean isInverted;
+	private ColorMatrixColorFilter setFilter(float contrast) {
+	    ColorMatrix output = new ColorMatrix();
 	    
 	    ColorMatrix bw = new ColorMatrix();
 	    bw.setSaturation(0);  //greyscale
@@ -191,7 +200,7 @@ import pda.lupa.Settings;
 	    ColorMatrix chageColor = new ColorMatrix(new float[] {
 		1, 1, 1, 0, 0,
 		0, 1, 0, 0, 0,
-		0, 0, 1, 0, 0,
+		0, 0, 0, 0, 0,
 		0, 0, 0, 1, 0});
 	    
 	    float scale = contrast + 1.f;
@@ -203,34 +212,26 @@ import pda.lupa.Settings;
 		0, 0, 0, 1, 0});
 	    
 	    
-	    output.setConcat(output, bw);
-	    //output.setConcat(output, invert);	    
-	    //output.setConcat(output, contr);
-	    //output.setConcat(output, chageColor);
+	    output.setConcat(output, contr);
+	    switch(Settings.getViewType()) {
+		case 0:
+		    break;
+		case 2:
+		    output.setConcat(output, bw);
+		    output.setConcat(output, chageColor);
+		    break;
+		default:
+		    output.setConcat(output, bw);
+		    break;   
+	    }
 	    
-	    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(output);
+	    if(isInverted != Settings.isInverted())
+		output.setConcat(output, invert);	        	    
+	    
+	    filter = new ColorMatrixColorFilter(output);
 	    return filter;
 	}
-
 	
-	Date start;
-	int fcount = 0;
-	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
-
-	    if(this.prevX == 0) return;
-	    if(start == null){
-		    start = new Date();
-	    }
-	    fcount++;
-	    if(fcount % 100 == 0){
-		    double ms = (new Date()).getTime() - start.getTime();
-		    Log.i("AR","fps:" + fcount/(ms/1000.0));
-	    }
-
-	    this.cameraFrame = yuvsSource;
-
-	    camera.addCallbackBuffer(yuvsSource);
-	}
 
 	public void setPreviewSize(Camera.Size size, Camera camera) {
 	    //zjistime rozmery nahledu

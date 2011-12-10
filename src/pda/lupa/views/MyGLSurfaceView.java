@@ -17,7 +17,10 @@ import android.util.Log;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
@@ -28,6 +31,8 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     
     /** buffer, do ktereho se nacita obrazek nahledu */
     private byte[] cameraFrame;
+    /** pamatueme se 3 snimky zpet... */
+    private List<byte[]> wholeCameraFrame;
     //ByteBuffer cameraFrame = null;
     
     /** buffer pro nacteni dat z kamery*/
@@ -68,9 +73,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	super(c, a);
 	this.context = c;
 	
-	
-	//spustime jako samostatne vlakno
-	//new Thread(this).start();
+	this.wholeCameraFrame = new ArrayList<byte[]>(3);
+	this.wholeCameraFrame.add(new byte[] {0x00});
+	this.wholeCameraFrame.add(new byte[] {0x00});
 	
 	//nastaveni pruhlednosti pozadi!
 	this.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
@@ -113,8 +118,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	gl.glEnable(GL10.GL_DEPTH_TEST);
 	gl.glDepthFunc(GL10.GL_LEQUAL); 
 	
-	//perspektiva, casem asi zbytecny
-	//gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_NICEST);
     }
     
     /**
@@ -146,11 +149,15 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      */
     public void onDrawFrame(GL10 gl) {
 	if(cameraFrame == null) return;
+	
+	//pridame do "historie"
+	wholeCameraFrame.remove(0);
+	wholeCameraFrame.add(this.cameraFrame);
 	//tady se bude rozhodovat, jestli je zobrazeno gl nebo "ne"
 	if(Settings.isGlView())
 	    bindCameraTexture(gl);//nabindujeme aktualni texturu
 	else {
-	    gl.glColor4f(1f, 0f, 0f, 0f);
+	    gl.glColor4f(0f, 0f, 0f, 0f);
 	    return;
 	}
 
@@ -164,10 +171,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	
 	this.initTexture(gl);
 	
-	
-	
-	
-	
 	//normala povrchu
 	gl.glNormal3f(0,0,1);
 	// povolime buffery
@@ -179,7 +182,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
 	gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, textureBuffer);
 	
-	//gl.glBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_COLOR);
 	switch(Settings.getViewType()) {
 	    case 2:
 		gl.glColor4f(1f, 1f, 0.4f, 1f);
@@ -189,12 +191,9 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 		break;
 	}
 	
-	
 	// vykrelime ctverec
 	gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
 	
-	
-	//gl.glDisable(GL10.GL_COLOR_LOGIC_OP);
 	//vymazat stav
 	gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
@@ -212,8 +211,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	}
 	return src;
     }
-
- 
  
     /**
      * Volana pri kazdem novem framu
@@ -222,23 +219,21 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * jsou ciste BW data, barvu muzu vklidu zahodit
      * @param bytes data z kamery v divnym formatu yuv :)
      */
-    Date start;
-    int fcount = 0;
+    //Date start;
+    //int fcount = 0;
     
     public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
-	if(this.prevX == 0) return;
-	if(start == null){
+	//if(this.prevX == 0) return;
+	/*if(start == null){
 		start = new Date();
 	}
 	fcount++;
 	if(fcount % 100 == 0){
 		double ms = (new Date()).getTime() - start.getTime();
-		Log.i("AR","fps:" + fcount/(ms/1000.0));
-	}
-	
-	System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
-		
-	//this.cameraFrame = ByteBuffer.wrap(yuvsSource, 0, prevX*prevY);
+		Log.i("GLSurfaceView::onPreviewFrame","fps:" + fcount/(ms/1000.0));
+	}*/
+	//System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
+	this.cameraFrame = yuvsSource;
 	
 	camera.addCallbackBuffer(yuvsSource);
     }
@@ -294,7 +289,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	    //gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
 	    gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE,
 		    this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
-		    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame)); 
+		    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame, 0, this.cameraFrame.length/3*2)); 
 	}
 	catch (Exception e) {
 	    Log.d("bindcameratexture", "" + e.getMessage());
@@ -313,10 +308,17 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	this.camera = camera;
 	// vytvorime buffer pro obrazek o velikosti sirka x vyska
 	
-	this.cameraFrame = new byte[prevX*prevY];
-	
-	this.previewBuffer1 = new byte[prevX*prevY*12/8];
-	this.camera.addCallbackBuffer(this.previewBuffer1);
+	this.cameraFrame = new byte[prevX*prevY*3/2];
+	this.previewBuffer1 = new byte[prevX*prevY*3/2];
+	//this.camera.addCallbackBuffer(this.previewBuffer1);
+    }
+    
+    /**
+     * Ziskani dat pri zastaveni obrazovky
+     * @return 
+     */
+    public byte[] getCameraFrame() {
+	return this.wholeCameraFrame.get(0); //vracime vzdy snimek o 3 zpet, tedy tesne pred klikem
     }
 
 }

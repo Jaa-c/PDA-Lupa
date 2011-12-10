@@ -134,11 +134,10 @@ public final class Lupa {
     
     public void vibrate(int ms) {
 	Vibrator v = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
-	v.vibrate(150);
+	v.vibrate(ms);
     }
     
     public void changeView(int viewType) {
-	Log.d("changeView", viewType + "");
 	if(viewType == 0)
 	    prev.changeView(false);
 	else
