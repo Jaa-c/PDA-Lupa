@@ -1,10 +1,6 @@
-package pda.lupa.callbacks;
+package pda.lupa.views;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import pda.lupa.MyGLSurfaceView;
+import android.view.MotionEvent;
 import pda.lupa.Lupa;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -14,28 +10,31 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import pda.lupa.MyGestureDetector;
+import pda.lupa.Settings;
 
     /**
      * Callbeck pro surface
      */
-    public final class MySurfaceCallback extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
+    public final class MySurfaceView extends SurfaceView 
+    implements SurfaceHolder.Callback, Camera.PreviewCallback,
+    SurfaceView.OnTouchListener {
 	Lupa lupa;
 	
 	Camera camera;
@@ -43,8 +42,7 @@ import java.util.Date;
 	
 	MyGLSurfaceView glCallback;
 	
-	
-	  /** buffer, do ktereho se nacita obrazek nahledu */
+	/** buffer, do ktereho se nacita obrazek nahledu */
 	private byte[] cameraFrame;
 
 	/** buffer pro nacteni dat z kamery*/
@@ -55,21 +53,21 @@ import java.util.Date;
 	
 	Context c;
 	
-	//nacteme bordel z NDK
-	static {
-	    System.loadLibrary("rgb");
-	}
+	private GestureDetector gestureDetector;
+        
 	
-	//deklarace nativní metody
-	public native int[] NativeYuv2rgb(byte[] imageIn, int widthIn, int heightIn,
-		int size, int widthOut, int heightOut);
 
-	
-	public MySurfaceCallback(Context c, AttributeSet s) {
+	public MySurfaceView(Context c, AttributeSet s) {
 	    super(c, s);
 	    this.c = c;
-	    setWillNotDraw(false);
-
+	    
+	    this.gestureDetector = new GestureDetector(new MyGestureDetector());
+	    
+	    this.setWillNotDraw(true);
+	    this.setOnTouchListener(this);
+	    
+	    //this.setZOrderOnTop(true);
+	    
 	}
 	
 	public void init(Lupa lupa) {
@@ -94,39 +92,45 @@ import java.util.Date;
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 	    Camera.Parameters parameters = camera.getParameters();
 	    Camera.Size size = getBestPreviewSize(width, height, parameters);  
+	    	    
+	    
 	    if (size!=null) {
 		parameters.setPreviewSize(size.width, size.height);
 		//musime nastavit danou velikost do GLSurfaceView
 		this.glCallback.setPreviewSize(size, this.camera);
-		
-		this.setPreviewSize(size, this.camera);
-		
 		camera.setParameters(parameters);
 	    }
 	    
+	    this.changeView(Settings.isGlView());
+
+	    //camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
+	    lupa.setInPreview(true);
+	    lupa.zoom();
+	    lupa.focus();
+	}
+	
+	public void changeView(boolean glView) {
 	    try {
-		if(c.getResources().getBoolean(pda.lupa.R.bool.GL_view)) { //nejaka podminka kdyz ho budu chtit zobrazit
+		
+		camera.stopPreview();
+		if(glView) {
+		    glCallback.setVisibility(View.VISIBLE);
+		    glCallback.initBuffer();
 		    camera.setPreviewCallbackWithBuffer(glCallback);
 		    camera.setPreviewDisplay(null);
 		}
 		else {
-		    //camera.setPreviewDisplay(prevHolder);
-		    camera.setPreviewCallbackWithBuffer(this);
-		    camera.setPreviewDisplay(null);
+		    glCallback.setVisibility(View.INVISIBLE);
+		    camera.setPreviewDisplay(prevHolder);
+		    camera.setPreviewCallbackWithBuffer(null);
+		    //camera.setPreviewCallbackWithBuffer(this);
+		    //camera.setPreviewDisplay(null);
 		}
-		    
-		
-		camera.startPreview(); // tady ZACINA ZOBRAZENI NAHLEDU
-		lupa.setInPreview(true);
-		lupa.zoom(5);
-		lupa.focus();
+		camera.startPreview();
 	    }
-	    catch (Throwable t) {
-		Log.e("PreviewDemo-surfaceCallback",
-			"Exception in setPreviewDisplay()", t);
-		Toast.makeText(c, t.getMessage(), Toast.LENGTH_LONG).show();
+	    catch(Throwable t) {
+		Log.e("onSurfaceChanged", "stala se smula v setPreviewDisplay");
 	    }
-	
 	}
 	
 
@@ -139,39 +143,21 @@ import java.util.Date;
 	YuvImage yuvimage;
 	ByteArrayOutputStream baos;
 	byte[] jdata;
-	int[] out = new int[320*240*2];
+	int[] out = new int[320*240];
 	
 	IntBuffer rgb;
 	
-	Paint paint;
+	Paint paint = new Paint();
 	Bitmap bmp;
 	ColorMatrixColorFilter filter = setContrast(10f);
-	int i = 0;
+	
 	@Override
-	protected void onDraw(Canvas canvas) {	    
-	    
-	    if(cameraFrame == null) {
+	protected void onDraw(Canvas canvas) {
+	    if(true || cameraFrame == null) {
 		invalidate();
 		return;
 	    }
-	    paint = new Paint();
-	    
-	    if(true) {
-	    
-		Log.d("onDraw", "calling NativeYuv2rgb here:");
-		
-		 out = NativeYuv2rgb(this.cameraFrame, this.prevX, this.prevY,
-			this.prevX * this.prevY * 2, this.prevX, this.prevY);
-		
-		Log.d("onDraw", "finished NativeYuv2rgb here ^");
-
-
-		canvas.drawBitmap(out, 0, prevX, 0, 0, prevX, prevY, true, paint);
-		
-
-		invalidate();return; 
-	    }
-	    
+	   
 	    yuvimage=new YuvImage(cameraFrame, ImageFormat.NV21, prevX, prevY, null);
 	    
 	    baos = new ByteArrayOutputStream();
@@ -231,18 +217,6 @@ import java.util.Date;
 	int fcount = 0;
 	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
 
-	    /*File f = new File("/sdcard/yuvsdata.bin");
-	     * try {
-		FileOutputStream fOut = new FileOutputStream(f);
-		OutputStreamWriter osw = new OutputStreamWriter(fOut); 
-		fOut.write(yuvsSource);
-		osw.flush();
-		osw.close();
-	    } catch (IOException ex) {
-		Logger.getLogger(MySurfaceCallback.class.getName()).log(Level.SEVERE, null, ex);
-	    }
-	     System.exit(0);*/
-
 	    if(this.prevX == 0) return;
 	    if(start == null){
 		    start = new Date();
@@ -301,4 +275,10 @@ import java.util.Date;
 	    }	    
 	    return result;
 	}
+
+	public boolean onTouch(View view, MotionEvent me) {
+	    gestureDetector.onTouchEvent(me);
+	    return true;
+	}
+
     }

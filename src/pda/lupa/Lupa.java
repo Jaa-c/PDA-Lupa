@@ -1,8 +1,11 @@
 package pda.lupa;
 
+import pda.lupa.views.MyGLSurfaceView;
 import android.app.Activity;
+import android.content.Context;
 import android.hardware.Camera;
 import android.os.Handler;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceHolder;
@@ -11,7 +14,7 @@ import android.view.View;
 import android.widget.Toast;
 import pda.lupa.callbacks.MyAutoFocusCallback;
 import pda.temp.MyPreviewCallback;
-import pda.lupa.callbacks.MySurfaceCallback;
+import pda.lupa.views.MySurfaceView;
 
 /**
  * ToDo:
@@ -29,7 +32,7 @@ public final class Lupa {
     private Camera camera = null;
     
     /* Blbosti aby to fungovalo... */
-    private MySurfaceCallback prev = null;
+    private MySurfaceView prev = null;
     private SurfaceHolder prevHolder = null;
         
     private MyGLSurfaceView glView;
@@ -52,10 +55,14 @@ public final class Lupa {
      * pro surface
      * @param main aktivita..
      */
-    public Lupa(Activity main) {//, SurfaceView prev) {
+    public Lupa(Activity main) {
 	this.activity = main;
 	this.glView = (MyGLSurfaceView) this.activity.findViewById(R.id.gl_preview);
-	this.prev = (MySurfaceCallback) this.activity.findViewById(R.id.preview);
+	this.prev = (MySurfaceView) this.activity.findViewById(R.id.preview);
+	
+	//activity.registerForContextMenu(prev);
+	//activity.registerForContextMenu(glView);
+	
 	
 	//je to jeste potreba?
 	Display display = activity.getWindowManager().getDefaultDisplay();
@@ -79,6 +86,7 @@ public final class Lupa {
 	    //Autofocus:
 	    autoFocus = new MyAutoFocusCallback(); //vytvorime callback
 	    autoFocus.setHandler(this.handler, R.id.auto_focus); //nastavime handle
+	    Settings.init(activity, camera.getParameters(), this.handler);
 	}
     }
 
@@ -98,20 +106,41 @@ public final class Lupa {
      * @param zoom hodnota zoomu, pokud je vetsi nez 
      * Camera.Parameters.getMaxZoom() tak se snizi
      */
-    public void zoom(int zoom) {
+    public void zoom() {
 	Camera.Parameters param = camera.getParameters();
-	
-	// Pokud fotak nepodporuje zoom, moc toho nevymyslim.
+
 	if(!param.isZoomSupported()) {
 	    Toast.makeText(activity, R.string.err_noZoom , Toast.LENGTH_LONG).show();
 	    return;
 	}
-	//zjistime maximalni zoom zarizeni, pripadne upravime
-	int maxZoom = param.getMaxZoom();
-	zoom = zoom > maxZoom ? maxZoom : zoom;
-	//nastavime hodnotu zoomu
-	param.setZoom(zoom);
+
+	param.setZoom(Settings.getZoom());
 	camera.setParameters(param);
+    }
+    
+    /**
+     * Nastavuje effekt kamery
+     * @param effect 
+     */
+    public void invert(boolean inverted) {
+	Camera.Parameters param = camera.getParameters();
+	if(inverted)
+	    param.setColorEffect(Camera.Parameters.EFFECT_NONE);
+	else 
+	    param.setColorEffect(Camera.Parameters.EFFECT_NEGATIVE);
+	camera.setParameters(param);
+    }
+    
+    public void vibrate(int ms) {
+	Vibrator v = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
+	v.vibrate(150);
+    }
+    
+    public void changeView(int viewType) {
+	if(viewType == 0)
+	    prev.changeView(false);
+	else
+	    prev.changeView(true);
     }
 
     /**
