@@ -11,9 +11,11 @@ public class Settings {
     public static void init(Context c, Camera.Parameters p, Handler h) {
 	maxZoom = p.getMaxZoom();
 	zoom = 5;
+	contrast = 0.1f;
 	handler = h;
 	glView = c.getResources().getBoolean(R.bool.GL_view);
 	inverted = false;
+	stopView = false;
     }
     
     private static int maxZoom;
@@ -70,5 +72,38 @@ public class Settings {
 	return viewType;
     }
     
+    private static boolean stopView;
+    public static void setStopView(boolean stop) {
+	stopView = stop;
+	
+	handler.dispatchMessage(handler.obtainMessage(R.id.view_stop));
+    }
+    public static boolean isStopView() {
+	return stopView;
+    }
+    
+    
+    private static float contrast;
+    public static void setContrast(float add) {
+	if(add > 0)
+	    contrast *= add;
+	else
+	    contrast /= -add;
+	
+	if(contrast < 0.1f) {
+	    contrast = 0.1f;
+	    handler.dispatchMessage(handler.obtainMessage(R.id.vibrate_limit));
+	}
+	if(contrast > 200) {
+	    contrast = 200;
+	     handler.dispatchMessage(handler.obtainMessage(R.id.vibrate_limit));
+	}
+    }
+    /*public static void setContrast(float c) {
+	contrast = c;
+    }*/
+    public static float getContrast() {
+	return contrast;
+    }
     
 }

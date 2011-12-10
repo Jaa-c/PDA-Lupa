@@ -94,6 +94,7 @@ public final class Lupa {
      * Spousti auto focus, pokud je dostupny!
      */
     public void focus() {
+	if(!inPreview) return;
 	String focus = camera.getParameters().getFocusMode();
 	if(focus.equals("auto") || focus.equals("macro")) {
 	    camera.autoFocus(autoFocus);
@@ -137,10 +138,17 @@ public final class Lupa {
     }
     
     public void changeView(int viewType) {
+	Log.d("changeView", viewType + "");
 	if(viewType == 0)
 	    prev.changeView(false);
 	else
 	    prev.changeView(true);
+    }
+    
+    public void setBitmapData() {
+	//if(Settings.isGlView()) {
+	    prev.createBitmap(glView.getCameraFrame());
+	//}
     }
 
     /**

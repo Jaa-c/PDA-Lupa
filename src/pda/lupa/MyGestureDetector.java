@@ -3,13 +3,10 @@ package pda.lupa;
 import android.util.Log;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
-import android.widget.Toast;
-
 
 
 public class MyGestureDetector extends SimpleOnGestureListener {
     private static final int SWIPE_MIN_DISTANCE = 100;
-    private static final int SWIPE_MAX_OFF_PATH = 250;
     private static final int SWIPE_THRESHOLD_VELOCITY = 200;
     
     public MyGestureDetector() {
@@ -18,7 +15,13 @@ public class MyGestureDetector extends SimpleOnGestureListener {
     
     @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-	    Log.d("click", "just click");
+	    if(Settings.isStopView()) {
+		Settings.setStopView(false);
+		return true;
+	    }
+	    //if(Settings.isGlView())
+		Settings.setStopView(true);
+	    	
 	    return true;
         }
 
@@ -36,11 +39,17 @@ public class MyGestureDetector extends SimpleOnGestureListener {
 	    }
 	    //top
 	    else if(e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-		Settings.setZoom(Settings.getZoom()+1);
+		if(Settings.isStopView())
+		    Settings.setContrast(+2f);
+		else
+		    Settings.setZoom(Settings.getZoom()+1);
 	    } 
 	    //bottom
 	    else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-		Settings.setZoom(Settings.getZoom()-1);
+		if(Settings.isStopView())
+		    Settings.setContrast(-2f);
+		else
+		    Settings.setZoom(Settings.getZoom()-1);
 	    }
 	} catch (Exception e) {
 	    // nothing

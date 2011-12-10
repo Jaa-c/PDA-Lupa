@@ -12,14 +12,14 @@ public class ActionHandler extends Handler {
     }
     
     @Override
-    public void handleMessage(Message message) {
-	if(!lupa.inPreview())
-	    return;
+    public void handleMessage(Message message) {	
 	switch (message.what) {
 	    case R.id.auto_focus:
+		if(!lupa.inPreview()) return;
 		lupa.focus();
 		break;
 	    case R.id.zoom:
+		if(!lupa.inPreview()) return;
 		lupa.zoom();
 		break;
  	    case R.id.vibrate_limit:
@@ -31,7 +31,16 @@ public class ActionHandler extends Handler {
 	    case R.id.view_type:
 		lupa.changeView(message.arg1);
 		break;
+	    case R.id.view_stop:
+		if(Settings.isStopView()) {
+		    lupa.setBitmapData();
+		    lupa.changeView(0);
+		}
+		else
+		    lupa.changeView(Settings.getViewType());
+		break;
 	 }
     }
+    
     
 }
