@@ -146,7 +146,7 @@ public final class Lupa {
     
     public void setBitmapData() {
 	//if(Settings.isGlView()) {
-	    prev.createBitmap(glView.getCameraFrame());
+	    prev.createBitmap();//glView.getCameraFrame());
 	//}
     }
 

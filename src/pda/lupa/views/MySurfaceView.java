@@ -10,7 +10,6 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
@@ -20,12 +19,7 @@ import android.view.GestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
-import java.nio.IntBuffer;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
 import pda.lupa.MyGestureDetector;
 import pda.lupa.Settings;
 
@@ -33,7 +27,8 @@ import pda.lupa.Settings;
      * Callbeck pro surface
      */
     public final class MySurfaceView extends SurfaceView 
-    implements SurfaceHolder.Callback, SurfaceView.OnTouchListener {
+    implements SurfaceHolder.Callback, SurfaceView.OnTouchListener,
+    Camera.PreviewCallback {
 	Lupa lupa;
 	
 	Camera camera;
@@ -43,9 +38,10 @@ import pda.lupa.Settings;
 	
 	/** buffer, do ktereho se nacita obrazek nahledu */
 	private byte[] cameraFrame;
-
+	
 	/** buffer pro nacteni dat z kamery*/
-	private byte[] previewBuffer1;
+        private byte[] previewBuffer1;
+
 	/** velikost zobrazovaneho nahledu,
 	 * nastavuje se v SetPreviewSize */
 	private int prevY, prevX = 0;
@@ -60,15 +56,13 @@ import pda.lupa.Settings;
 	    super(c, s);
 	    this.c = c;
 	    
+	    //listener na dotyky displeje
 	    this.gestureDetector = new GestureDetector(new MyGestureDetector());
-	    
-	    this.setWillNotDraw(true);
 	    this.setOnTouchListener(this);  
 	}
 	
 	public void init(Lupa lupa) {
 	    this.lupa = lupa;
-	    
 	    this.glCallback = lupa.getGlCallback();
 	    
 	    camera = lupa.getCamera();
@@ -89,12 +83,10 @@ import pda.lupa.Settings;
 	    Camera.Parameters parameters = camera.getParameters();
 	    Camera.Size size = getBestPreviewSize(width, height, parameters);  
 	    	    
-	    
 	    if (size!=null) {
 		parameters.setPreviewSize(size.width, size.height);
-		//musime nastavit danou velikost do GLSurfaceView
-		this.glCallback.setPreviewSize(size, this.camera);
-		this.setPreviewSize(size, this.camera);
+		this.glCallback.setPreviewSize(size);
+		this.setPreviewSize(size);
 		camera.setParameters(parameters);
 	    }
 	    
@@ -111,30 +103,21 @@ import pda.lupa.Settings;
 		
 		if(glView) { //zobrazujeme pres OpenGL
 		    glCallback.setVisibility(View.VISIBLE);
-		    
-		    //glCallback.initBuffer();
-		    //camera.setPreviewCallbackWithBuffer(glCallback);
 		    camera.setPreviewDisplay(null);
 		}
 		else { //zobrazujeme pres surfaceview
-		    glCallback.setVisibility(View.INVISIBLE);	
+		    glCallback.setVisibility(View.INVISIBLE);
 		    
-		   // camera.setPreviewCallbackWithBuffer(null);
 		    if(Settings.isStopView()) {  //zastavena obrazovka
 			camera.setPreviewDisplay(null);
 			this.setWillNotDraw(false);
 			return;
 		    }
-		    else
-			camera.setPreviewDisplay(prevHolder);
-		    /*
-		    this.setWillNotDraw(false);
-		    camera.setPreviewCallbackWithBuffer(this);
-		    camera.setPreviewDisplay(null);*/
+		    
+		    camera.setPreviewDisplay(prevHolder);
 		}
 		
-		glCallback.initBuffer();
-		camera.setPreviewCallbackWithBuffer(glCallback);
+		camera.setPreviewCallbackWithBuffer(this);
 		camera.startPreview();
 		lupa.setInPreview(true);
 		lupa.focus();
@@ -149,6 +132,17 @@ import pda.lupa.Settings;
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 	    lupa.close();
+	}
+	
+	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
+	    if(Settings.isGlView()) {
+		glCallback.onPreviewFrame(yuvsSource, camera);
+		this.camera.addCallbackBuffer(yuvsSource);
+		return;
+	    }
+	    
+	    this.cameraFrame = yuvsSource;
+	    camera.addCallbackBuffer(yuvsSource);
 	}
 	
 	
@@ -170,11 +164,11 @@ import pda.lupa.Settings;
 	    invalidate();
 	}
 	
-	public void createBitmap(byte[] data) {
+	public void createBitmap() {
 	    YuvImage yuvimage;
 	    ByteArrayOutputStream baos;
 	    
-	    yuvimage=new YuvImage(data, ImageFormat.NV21, prevX, prevY, null);
+	    yuvimage=new YuvImage(this.cameraFrame, ImageFormat.NV21, prevX, prevY, null);
 	    
 	    baos = new ByteArrayOutputStream();
 	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
@@ -233,14 +227,12 @@ import pda.lupa.Settings;
 	}
 	
 
-	public void setPreviewSize(Camera.Size size, Camera camera) {
+	public void setPreviewSize(Camera.Size size) {
 	    //zjistime rozmery nahledu
 	    this.prevX = size.width;
 	    this.prevY = size.height;
 
-	    this.camera = camera;
 	    // vytvorime buffer pro obrazek o velikosti sirka x vyska
-
 	    this.cameraFrame = new byte[prevX*prevY*3/2];
 
 	    this.previewBuffer1 = new byte[prevX*prevY*3/2];
@@ -277,6 +269,12 @@ import pda.lupa.Settings;
 	    return result;
 	}
 
+	/**
+	 * Callback pro dotyk displee, vola e pri kazde akci
+	 * @param view
+	 * @param me
+	 * @return 
+	 */
 	public boolean onTouch(View view, MotionEvent me) {
 	    gestureDetector.onTouchEvent(me);
 	    return true;

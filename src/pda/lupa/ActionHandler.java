@@ -29,8 +29,11 @@ public class ActionHandler extends Handler {
 		lupa.invert((Boolean)message.obj);
 		break;
 	    case R.id.view_type:
-		lupa.changeView(message.arg1);
-		break;
+		if(!Settings.isStopView()) 
+		    lupa.changeView(message.arg1);
+		else
+		    lupa.changeView(0);
+		break;	
 	    case R.id.view_stop:
 		if(Settings.isStopView()) {
 		    lupa.setBitmapData();

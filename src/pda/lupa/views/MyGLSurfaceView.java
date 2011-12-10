@@ -26,25 +26,19 @@ import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 import pda.lupa.Settings;
 
-public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Renderer, Camera.PreviewCallback {
+public class MyGLSurfaceView extends GLSurfaceView  implements 
+	GLSurfaceView.Renderer {
+    
     Context context;
     
     /** buffer, do ktereho se nacita obrazek nahledu */
     private byte[] cameraFrame;
-    /** pamatueme se 3 snimky zpet... */
-    private List<byte[]> wholeCameraFrame;
-    //ByteBuffer cameraFrame = null;
     
-    /** buffer pro nacteni dat z kamery*/
-    private byte[] previewBuffer1;
     /** ukazatel na texturu */
     private int[] cameraTexture;
     /** velikost zobrazovaneho nahledu,
      * nastavuje se v SetPreviewSize */
     private int prevY, prevX = 0;
-    
-    /** Kvuli bufferum potrebuju instanci kamery */
-    private Camera camera = null;
       
     /** bufferm obsahuje mapovani textury */
     private FloatBuffer textureBuffer;
@@ -72,10 +66,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     public MyGLSurfaceView(Context c, AttributeSet a) {
 	super(c, a);
 	this.context = c;
-	
-	this.wholeCameraFrame = new ArrayList<byte[]>(3);
-	this.wholeCameraFrame.add(new byte[] {0x00});
-	this.wholeCameraFrame.add(new byte[] {0x00});
 	
 	//nastaveni pruhlednosti pozadi!
 	this.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
@@ -150,9 +140,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
     public void onDrawFrame(GL10 gl) {
 	if(cameraFrame == null) return;
 	
-	//pridame do "historie"
-	wholeCameraFrame.remove(0);
-	wholeCameraFrame.add(this.cameraFrame);
 	//tady se bude rozhodovat, jestli je zobrazeno gl nebo "ne"
 	if(Settings.isGlView())
 	    bindCameraTexture(gl);//nabindujeme aktualni texturu
@@ -199,18 +186,6 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 	gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
     }
 
-    
-    public byte[] createContrast(byte[] src, double value) {
-	// get contrast value
-	double contrast = Math.pow((100 + value) / 100, 2);
-	// scan through all pixels
-	for(int x = 0; x < src.length; x++) {
-	    src[x] = (byte)(((((Color.alpha(src[x]) / 255.0) - 0.5) * contrast) + 0.5) * 255.0);
-	    //src[x] = (out > 255) ? (byte) 255 : out;
-	    //src[x] = (out < 0) ? (byte) 0 : out;
-	}
-	return src;
-    }
  
     /**
      * Volana pri kazdem novem framu
@@ -218,33 +193,12 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * a pote posila pro 2 pixely 1B barvy... tedy 1. 2/3 souboru
      * jsou ciste BW data, barvu muzu vklidu zahodit
      * @param bytes data z kamery v divnym formatu yuv :)
-     */
-    //Date start;
-    //int fcount = 0;
-    
+     */    
     public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
-	//if(this.prevX == 0) return;
-	/*if(start == null){
-		start = new Date();
-	}
-	fcount++;
-	if(fcount % 100 == 0){
-		double ms = (new Date()).getTime() - start.getTime();
-		Log.i("GLSurfaceView::onPreviewFrame","fps:" + fcount/(ms/1000.0));
-	}*/
-	//System.arraycopy(yuvsSource, 0, this.cameraFrame, 0, this.cameraFrame.length-1);
 	this.cameraFrame = yuvsSource;
-	
-	camera.addCallbackBuffer(yuvsSource);
     }
     
-    /**
-     * Po kazde, kdyz se zmeni callback je vymazana fronta bufferu,
-     * pro nastaveni callbacku musime tedy pridat buffer zpet do fronty
-     */
-    public void initBuffer() {
-	camera.addCallbackBuffer(this.previewBuffer1);
-    }
+
     
     int tex = -1;
     void initTexture(GL10 gl) {
@@ -259,6 +213,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
 
 	gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
     }
+    
     /**
      * insirovano zde, ale uz znacne upraveno
      * @see http://nhenze.net/?p=172
@@ -300,25 +255,12 @@ public class MyGLSurfaceView extends GLSurfaceView  implements GLSurfaceView.Ren
      * Nastavi aktualni velikost zobrazovaneho nahledu
      * @param size Velikost aktualniho nahledu!
      */
-    public void setPreviewSize(Camera.Size size, Camera camera) {
+    public void setPreviewSize(Camera.Size size) {
 	//zjistime rozmery nahledu
 	this.prevX = size.width;
 	this.prevY = size.height;
 	
-	this.camera = camera;
-	// vytvorime buffer pro obrazek o velikosti sirka x vyska
-	
 	this.cameraFrame = new byte[prevX*prevY*3/2];
-	this.previewBuffer1 = new byte[prevX*prevY*3/2];
-	//this.camera.addCallbackBuffer(this.previewBuffer1);
-    }
-    
-    /**
-     * Ziskani dat pri zastaveni obrazovky
-     * @return 
-     */
-    public byte[] getCameraFrame() {
-	return this.wholeCameraFrame.get(0); //vracime vzdy snimek o 3 zpet, tedy tesne pred klikem
     }
 
 }

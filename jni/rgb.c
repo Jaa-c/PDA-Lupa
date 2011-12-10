@@ -50,6 +50,85 @@ int half_widthIn = widthIn >> 1;
   }
 };
 
+void toRGBBW(unsigned* rgb, unsigned short* yuv420sp, int width, int height) {
+    int frameSize = width * height;
+
+    int pix = 0;
+    for (pix = 0; pix < frameSize; pix++)
+    {
+            unsigned pixVal = (0xff & ((unsigned) yuv420sp[pix])) - 16;
+            if (pixVal < 0) pixVal = 0;
+            if (pixVal > 255) pixVal = 255;
+            rgb[pix] = 0xff000000 | (pixVal << 16) | (pixVal << 8) | pixVal;
+    }
+};
+
+
+void decodeYUV420SP(unsigned* rgb, unsigned short* yuv420sp, int width, int height) {
+    int frameSize = width * height;
+    int j = 0;
+    int yp = 0;
+    int i = 0;
+    for (j = 0, yp = 0; j < height; j++) {
+            int uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
+            for (i = 0; i < width; i++, yp++) {
+                    int y = (0xff & ((int) yuv420sp[yp])) - 16;
+                    if (y < 0) y = 0;
+                    if ((i & 1) == 0) {
+                            v = (0xff & yuv420sp[uvp++]) - 128;
+                            u = (0xff & yuv420sp[uvp++]) - 128;
+                    }
+
+                    int y1192 = 1192 * y;
+                    int r = (y1192 + 1634 * v);
+                    int g = (y1192 - 833 * v - 400 * u);
+                    int b = (y1192 + 2066 * u);
+
+                    if (r < 0) r = 0; else if (r > 262143) r = 262143;
+                    if (g < 0) g = 0; else if (g > 262143) g = 262143;
+                    if (b < 0) b = 0; else if (b > 262143) b = 262143;
+
+                    rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+            }
+    }
+}
+
+/*
+JNIEXPORT void JNICALL Java_pda_lupa_callbacks_MySurfaceCallback_NativeYuv2rgbbw
+(JNIEnv *env, jclass clazz, jobject rgb, jbyteArray yuv, jint width, jint height) {
+
+    jbyte *cYuv = (*env)->GetByteArrayElements(env, yuv, NULL);
+    
+    jint *out = (jint*)(*env)->GetDirectBufferAddress(env, rgb);
+    
+    toRGBBW((unsigned *) out, (unsigned short*)cYuv, width, height);
+    
+    
+    (*env)->ReleaseByteArrayElements(env, yuv, cYuv, JNI_ABORT);
+    
+
+}*/
+
+JNIEXPORT jintArray JNICALL Java_pda_lupa_callbacks_MySurfaceCallback_NativeYuv2rgbbw
+(JNIEnv *env, jclass clazz, jbyteArray yuv, jint width, jint height) {
+
+    jbyte *cYuv = (*env)->GetByteArrayElements(env, yuv, NULL);
+    
+    int size = width*height;
+    unsigned result[size];
+    jintArray ret = (*env)->NewIntArray(env, size);
+    
+    toRGBBW(result, (unsigned short*)cYuv, width, height);
+    //decodeYUV420SP(result, (unsigned short*)cYuv, width, height);
+    
+    (*env)->SetIntArrayRegion(env, ret, 0, size, result);
+    
+    (*env)->ReleaseByteArrayElements(env, yuv, cYuv, JNI_ABORT);
+    
+    return ret;
+
+}
+
 /**
  * Converts the input image from YUV to a RGB 5_6_5 image.
  * The size of the output buffer must be at least the size of the input image.
