@@ -3,9 +3,11 @@ package pda.lupa.views;
 import android.view.MotionEvent;
 import pda.lupa.Lupa;
 import android.content.Context;
+import android.graphics.AvoidXfermode;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
@@ -113,7 +115,7 @@ import pda.lupa.Settings;
 			this.setWillNotDraw(false);
 			return;
 		    }
-		    
+
 		    camera.setPreviewDisplay(prevHolder);
 		}
 		
@@ -171,7 +173,7 @@ import pda.lupa.Settings;
 	    yuvimage=new YuvImage(this.cameraFrame, ImageFormat.NV21, prevX, prevY, null);
 	    
 	    baos = new ByteArrayOutputStream();
-	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 80, baos);
+	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 95, baos);
 
 	    // Convert to Bitmap
 	    bmp = BitmapFactory.decodeByteArray(baos.toByteArray(), 0, baos.size());
@@ -189,12 +191,12 @@ import pda.lupa.Settings;
 		-1, 0,  0, 1, 0,
 		0, -1,  0, 1, 0,
 		0,  0, -1, 1, 0,
-		1,  1,  1, 1, 0});
+		0,  0,  0, 1, 0});
 	    
-	    ColorMatrix chageColor = new ColorMatrix(new float[] {
-		1, 1, 1, 0, 0,
-		0, 1, 0, 0, 0,
-		0, 0, 0, 0, 0,
+	    ColorMatrix blueYellow = new ColorMatrix(new float[] {
+		0.5f, 0.5f, 0.5f, 0, 0,
+		0.5f, 0.5f, 0.5f, 0, 0,
+		-0.5f, -0.5f, -0.5f, 0, 255,
 		0, 0, 0, 1, 0});
 	    
 	    float scale = contrast + 1.f;
@@ -206,21 +208,20 @@ import pda.lupa.Settings;
 		0, 0, 0, 1, 0});
 	    
 	    
-	    output.setConcat(output, contr);
-	    switch(Settings.getViewType()) {
-		case 0:
-		    break;
-		case 2:
-		    output.setConcat(output, bw);
-		    output.setConcat(output, chageColor);
-		    break;
-		default:
-		    output.setConcat(output, bw);
-		    break;   
-	    }
-	    
+	    output.setConcat(output, contr);	    
+
 	    if(isInverted != Settings.isInverted())
 		output.setConcat(output, invert);	        	    
+	    
+	    switch(Settings.getViewType()) {
+		case 1:
+		    output.setConcat(output, bw);
+		case 2:
+		    output.setConcat(output, blueYellow);
+		    break; 
+	    }
+	    
+	    
 	    
 	    filter = new ColorMatrixColorFilter(output);
 	    return filter;

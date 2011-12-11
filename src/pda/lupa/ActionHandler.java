@@ -43,7 +43,5 @@ public class ActionHandler extends Handler {
 		    lupa.changeView(Settings.getViewType());
 		break;
 	 }
-    }
-    
-    
+    }   
 }

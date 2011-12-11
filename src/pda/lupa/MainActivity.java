@@ -1,6 +1,7 @@
 package pda.lupa;
 
 import android.app.Activity;
+import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -20,6 +21,7 @@ public class MainActivity extends Activity
 	requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 		WindowManager.LayoutParams.FLAG_FULLSCREEN);
+	getWindow().setFormat(PixelFormat.RGBA_8888);
 		
 	setContentView(R.layout.main); 
     }   

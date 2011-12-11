@@ -171,7 +171,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 	
 	switch(Settings.getViewType()) {
 	    case 2:
-		gl.glColor4f(1f, 1f, 0.4f, 1f);
+		//gl.glColor4f(1f, 1f, 0.4f, 1f);
 		break;
 	    default:
 		gl.glColor4f(0f, 0f, 0f, 1f);
@@ -229,12 +229,15 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 	    
 	    gl.glEnable(GL10.GL_TEXTURE_2D );
 	    gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
-	    if(Settings.getViewType() > 1) {
+	    if(Settings.getViewType() == 2) {
+		gl.glColor4f(1f, 1f, 0f, 1f);
 		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_ADD );
 
+		
 		//gl.glActiveTexture(GL10.GL_TEXTURE1 );
 		gl.glEnable(GL10.GL_TEXTURE_2D );
-		gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);    
+		gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);   
+		gl.glColor4f(0f, 0f, 1f, 1f);
 		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_MODULATE );
 	    }
 	    else {
