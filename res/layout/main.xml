@@ -13,4 +13,16 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:layout_alignParentTop="true" />
+    <RelativeLayout 
+	android:id="@+id/button_layout" 
+	android:layout_width="match_parent" 
+	android:layout_height="match_parent">
+	<Button
+	    android:id="@+id/button_light"
+	    android:layout_width="64px"
+	    android:layout_height="64px"
+	    android:background="@drawable/button" 
+            android:layout_alignParentRight="true"
+	    android:layout_alignParentBottom="true" />
+    </RelativeLayout>
 </FrameLayout>

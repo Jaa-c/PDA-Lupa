@@ -6,8 +6,11 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.Toast;
 
 
 public class MainActivity extends Activity
@@ -67,5 +70,6 @@ public class MainActivity extends Activity
 	    return super.onOptionsItemSelected(item);
 	}
     }
+    
 
 }

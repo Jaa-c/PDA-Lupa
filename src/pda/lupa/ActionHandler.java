@@ -42,6 +42,12 @@ public class ActionHandler extends Handler {
 		else
 		    lupa.changeView(Settings.getViewType());
 		break;
+	    case R.id.light:
+		if(!Settings.isLightOn())
+		    lupa.light(false);
+		else
+		    lupa.light(true);
+		break;
 	 }
     }   
 }

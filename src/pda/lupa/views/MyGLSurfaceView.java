@@ -73,7 +73,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 	//nastavime render
 	this.setRenderer(this);		
 	//prej to je na nekterych zarizeni treba
-	this.setZOrderOnTop(true);
+	//this.setZOrderOnTop(true);
 	
 	// predpripravime si ctverec, vytvorime buffery
 	//zda se, ze to takhle zbesile delaj vsichni
@@ -125,8 +125,7 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 	// a matici vyresetovat
 	gl.glLoadIdentity();
 
-	//tohle je treba nejak predelat!! TODO
-	GLU.gluPerspective(gl, 25.0f, (float)height / (float)width, 0.1f, 10.0f);
+	//GLU.gluPerspective(gl, 45.0f, (float)height / (float)width, 1.0f, 100.0f);
 
 	//vybrat modelview matrix
 	gl.glMatrixMode(GL10.GL_MODELVIEW);
@@ -227,24 +226,23 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 		gl.glDeleteTextures(1, cameraTexture, 0);
 	    
 	    
+	    //gl.glActiveTexture(GL10.GL_TEXTURE0);
 	    gl.glEnable(GL10.GL_TEXTURE_2D );
 	    gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
-	    if(Settings.getViewType() == 2) {
-		gl.glColor4f(1f, 1f, 0f, 1f);
-		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_ADD );
-
-		
-		//gl.glActiveTexture(GL10.GL_TEXTURE1 );
-		gl.glEnable(GL10.GL_TEXTURE_2D );
-		gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);   
-		gl.glColor4f(0f, 0f, 1f, 1f);
+	    gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE);
+	    /*if(Settings.getViewType() == 2) {
+		gl.glColor4f(1f, 0f, 0, 1f);
 		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_MODULATE );
+
+		//gl.glColor4f(0f, 0f, 1, 1f);
+		//gl.glEnable(GL10.GL_TEXTURE_2D );		
+		//gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);   
+		//gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_ADD);
 	    }
 	    else {
 		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE);
-	    }
+	    }*/
 
-	    //gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
 	    gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE,
 		    this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
 		    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame, 0, this.cameraFrame.length/3*2)); 

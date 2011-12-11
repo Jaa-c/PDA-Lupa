@@ -3,11 +3,9 @@ package pda.lupa.views;
 import android.view.MotionEvent;
 import pda.lupa.Lupa;
 import android.content.Context;
-import android.graphics.AvoidXfermode;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
@@ -22,6 +20,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import pda.lupa.MyGestureDetector;
 import pda.lupa.Settings;
 
@@ -43,6 +43,8 @@ import pda.lupa.Settings;
 	
 	/** buffer pro nacteni dat z kamery*/
         private byte[] previewBuffer1;
+	
+	private List<byte[]> previewFrames = new ArrayList<byte[]>(3);
 
 	/** velikost zobrazovaneho nahledu,
 	 * nastavuje se v SetPreviewSize */
@@ -60,7 +62,11 @@ import pda.lupa.Settings;
 	    
 	    //listener na dotyky displeje
 	    this.gestureDetector = new GestureDetector(new MyGestureDetector());
-	    this.setOnTouchListener(this);  
+	    this.setOnTouchListener(this);
+	    
+	    previewFrames.add(new byte[] {});
+	    previewFrames.add(new byte[] {});
+	    
 	}
 	
 	public void init(Lupa lupa) {
@@ -93,16 +99,15 @@ import pda.lupa.Settings;
 	    }
 	    
 	    this.changeView(Settings.isGlView());
-
+	    
+	    camera.startPreview();
 	    lupa.zoom();
 	}
 	
 	public void changeView(boolean glView) {
 	    try {
 		lupa.setInPreview(false);
-		camera.stopPreview();
 		this.setWillNotDraw(true);
-		
 		if(glView) { //zobrazujeme pres OpenGL
 		    glCallback.setVisibility(View.VISIBLE);
 		    camera.setPreviewDisplay(null);
@@ -113,14 +118,15 @@ import pda.lupa.Settings;
 		    if(Settings.isStopView()) {  //zastavena obrazovka
 			camera.setPreviewDisplay(null);
 			this.setWillNotDraw(false);
+			lupa.getLightButton().setVisibility(View.INVISIBLE);
 			return;
 		    }
-
+		    camera.stopPreview();
 		    camera.setPreviewDisplay(prevHolder);
+		    camera.startPreview();
+		    lupa.light(Settings.isLightOn());
 		}
-		
 		camera.setPreviewCallbackWithBuffer(this);
-		camera.startPreview();
 		lupa.setInPreview(true);
 		lupa.focus();
 	    }
@@ -145,6 +151,8 @@ import pda.lupa.Settings;
 	    
 	    this.cameraFrame = yuvsSource;
 	    camera.addCallbackBuffer(yuvsSource);
+	    previewFrames.remove(0);
+	    previewFrames.add(cameraFrame);
 	}
 	
 	
@@ -170,7 +178,7 @@ import pda.lupa.Settings;
 	    YuvImage yuvimage;
 	    ByteArrayOutputStream baos;
 	    
-	    yuvimage=new YuvImage(this.cameraFrame, ImageFormat.NV21, prevX, prevY, null);
+	    yuvimage=new YuvImage(this.previewFrames.get(0), ImageFormat.NV21, prevX, prevY, null);
 	    
 	    baos = new ByteArrayOutputStream();
 	    yuvimage.compressToJpeg(new Rect(0, 0, prevX, prevY), 95, baos);

@@ -16,6 +16,7 @@ public class Settings {
 	glView = c.getResources().getBoolean(R.bool.GL_view);
 	inverted = false;
 	stopView = false;
+	lightOn = false;
     }
     
     private static int maxZoom;
@@ -99,11 +100,20 @@ public class Settings {
 	     handler.dispatchMessage(handler.obtainMessage(R.id.vibrate_limit));
 	}
     }
-    /*public static void setContrast(float c) {
-	contrast = c;
-    }*/
     public static float getContrast() {
 	return contrast;
     }
+    
+    
+    private static boolean lightOn;
+    public static void setLightOn(boolean b) {
+	lightOn = b;
+	
+	handler.dispatchMessage(handler.obtainMessage(R.id.light));
+    }
+    public static boolean isLightOn() {
+	return lightOn;
+    }
+    
     
 }

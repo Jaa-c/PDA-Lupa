@@ -4,10 +4,13 @@
   <!-- Messages IDs -->
   <item type="id" name="auto_focus"/>
   <item type="id" name="zoom"/>
+  
   <item type="id" name="vibrate_limit"/>
   <item type="id" name="invert"/>
   <item type="id" name="view_type" />
   <item type="id" name="view_stop" />
   
   <item type="id" name="surface"/>
+  
+  <item type="id" name="light"/>
 </resources>

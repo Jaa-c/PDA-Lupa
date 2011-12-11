@@ -3,17 +3,17 @@ package pda.lupa;
 import pda.lupa.views.MyGLSurfaceView;
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Camera;
-import android.os.Handler;
 import android.os.Vibrator;
-import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 import pda.lupa.callbacks.MyAutoFocusCallback;
-import pda.temp.MyPreviewCallback;
 import pda.lupa.views.MySurfaceView;
 
 /**
@@ -48,6 +48,8 @@ public final class Lupa {
     
     private boolean inPreview = false;
     
+    private final Button light;
+    
     
     /**
      * Konstruktor, inicializuje atributy, pripravuje surface
@@ -59,9 +61,13 @@ public final class Lupa {
 	this.activity = main;
 	this.glView = (MyGLSurfaceView) this.activity.findViewById(R.id.gl_preview);
 	this.prev = (MySurfaceView) this.activity.findViewById(R.id.preview);
+		
+	light = (Button) this.activity.findViewById(R.id.button_light);
+	light.setOnClickListener(new LightOnClickListener());
 	
-	//activity.registerForContextMenu(prev);
-	//activity.registerForContextMenu(glView);
+	if(!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
+	    light.setVisibility(View.INVISIBLE);
+	}
 	
 	
 	//je to jeste potreba?
@@ -75,6 +81,8 @@ public final class Lupa {
 	
     }
     
+    
+
     /**
      * Otevira kameru
      */
@@ -145,9 +153,16 @@ public final class Lupa {
     }
     
     public void setBitmapData() {
-	//if(Settings.isGlView()) {
 	    prev.createBitmap();//glView.getCameraFrame());
-	//}
+    }
+    
+    public void light(boolean turnOn) {
+	Camera.Parameters param = camera.getParameters();
+	if(turnOn)
+	    param.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+	else
+	    param.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+	camera.setParameters(param); 
     }
 
     /**
@@ -156,8 +171,9 @@ public final class Lupa {
     public void close() {
 	System.exit(0);
 	if (camera != null) {
-	    //prevHolder.addCallback(null); //smazeme klasickej preview 
+	    prevHolder.addCallback(null); //smazeme klasickej preview 
 	    autoFocus.setHandler(null, 0); //smazeme handler
+	    this.light(false);
 	    camera.setPreviewCallback(null); //smazeme callback na kameru
 	    camera.stopPreview(); //tady konci ZOBRAZOVANI NAHLEDU
 	    camera.release(); //ted muzeme v klidu ukoncit kameru
@@ -182,4 +198,21 @@ public final class Lupa {
     public Camera getCamera() {
 	return camera;
     }  
+    public Button getLightButton() {
+	return light;
+    }
+    
+    
+    class LightOnClickListener implements OnClickListener {
+	public void onClick(View v) {
+		if(Settings.isLightOn()) {
+		    light.setBackgroundResource(R.drawable.button_64_2);
+		    Settings.setLightOn(false);
+		}
+		else {
+		    light.setBackgroundResource(R.drawable.button_64);
+		    Settings.setLightOn(true);
+		}
+	    }
+    }
 }

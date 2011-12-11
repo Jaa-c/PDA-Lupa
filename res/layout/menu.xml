@@ -11,5 +11,6 @@
 		  android:title="@string/menu_zluty" />
 	</menu>
     </item>
-
+    <item android:id="@+id/menu_napoveda"
+	  android:title="@string/menu_napoveda" />
 </menu>

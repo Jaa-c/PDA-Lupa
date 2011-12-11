@@ -6,6 +6,8 @@
     <string name="menu_nastaveni_barev">Nastavení barevných režimů</string>
     <string name="menu_barevny">Barevný režim</string>
     <string name="menu_cernobily">Černobílý režim</string>
-    <string name="menu_zluty">Žlutočerný režim</string>
+    <string name="menu_zluty">Žluto-modrý režim (pouze zastavený obraz)</string>
+    
+    <string name="menu_napoveda">Nápověda</string>
     
 </resources>
