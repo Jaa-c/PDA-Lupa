@@ -3,10 +3,12 @@ package pda.lupa;
 import android.content.Context;
 import android.hardware.Camera;
 import android.os.Handler;
-import android.util.Log;
-import java.util.ArrayList;
 
+/**
+ * Uchovava aktualni nastaveni systemu a osetruje hodnoty
+ */
 public class Settings {
+    /** handler pro odesilani zprav */
     private static Handler handler;
     public static void init(Context c, Camera.Parameters p, Handler h) {
 	maxZoom = p.getMaxZoom();
@@ -17,9 +19,12 @@ public class Settings {
 	inverted = false;
 	stopView = false;
 	lightOn = false;
+	focusing = false;
     }
     
+    /** Maximalni hodnota zoomu */
     private static int maxZoom;
+    /** aktualni hodnota zoomu  */
     private static int zoom;
     public static void setZoom(int zoom) {
 	if(zoom > maxZoom || zoom < 0) {
@@ -34,7 +39,7 @@ public class Settings {
 	return zoom;
     }
     
-    
+    /** urcuje, jestli je obraz invertovany nebo ne */
     private static boolean inverted;
     public static boolean isInverted() {
 	return inverted;
@@ -50,12 +55,15 @@ public class Settings {
 	
     }
     
-    
+    /** urcuje, jestli zobrazujeme pres opengl */
     private static boolean glView;
     public static boolean isGlView() {
 	return glView;
     }
+    
+    
     /**
+     * Typ aktualniho zobrazeni
      * 0 - klasicke
      * 1 - cernobile
      * 2 - zlutocerne
@@ -73,6 +81,7 @@ public class Settings {
 	return viewType;
     }
     
+    /** urcuje, jestli je zastaveny nahled */
     private static boolean stopView;
     public static void setStopView(boolean stop) {
 	stopView = stop;
@@ -83,7 +92,7 @@ public class Settings {
 	return stopView;
     }
     
-    
+    /** aktualni hodnota kontrastu */
     private static float contrast;
     public static void setContrast(float add) {
 	if(add > 0)
@@ -104,7 +113,7 @@ public class Settings {
 	return contrast;
     }
     
-    
+    /** urcuje, jestli je zapnute svetlo  */
     private static boolean lightOn;
     public static void setLightOn(boolean b) {
 	lightOn = b;
@@ -115,5 +124,13 @@ public class Settings {
 	return lightOn;
     }
     
+    /** urcuje, zda je zapnute automaticke ostreni nebo ne */
+    private static boolean focusing;
+    public static boolean isFocusing() {
+	return focusing;
+    }
+    public static void setFocusing(boolean focusing) {
+	Settings.focusing = focusing;
+    }
     
 }

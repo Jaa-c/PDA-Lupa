@@ -1,28 +1,15 @@
 package pda.lupa.views;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.Rect;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
-import android.opengl.GLU;
 import android.util.AttributeSet;
 import android.util.Log;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 import pda.lupa.Settings;
 
@@ -223,32 +210,19 @@ public class MyGLSurfaceView extends GLSurfaceView  implements
 	    if (cameraTexture==null)
 		cameraTexture=new int[1];
 	    else
-		gl.glDeleteTextures(1, cameraTexture, 0);
-	    
+		gl.glDeleteTextures(1, cameraTexture, 0);    
 	    
 	    //gl.glActiveTexture(GL10.GL_TEXTURE0);
 	    gl.glEnable(GL10.GL_TEXTURE_2D );
 	    gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);
 	    gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE);
-	    /*if(Settings.getViewType() == 2) {
-		gl.glColor4f(1f, 0f, 0, 1f);
-		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_MODULATE );
-
-		//gl.glColor4f(0f, 0f, 1, 1f);
-		//gl.glEnable(GL10.GL_TEXTURE_2D );		
-		//gl.glBindTexture(GL10.GL_TEXTURE_2D, tex);   
-		//gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_ADD);
-	    }
-	    else {
-		gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE);
-	    }*/
 
 	    gl.glTexImage2D(GL10.GL_TEXTURE_2D, 0, GL10.GL_LUMINANCE,
 		    this.prevX, this.prevY, 0, GL10.GL_LUMINANCE, 
 		    GL10.GL_UNSIGNED_BYTE, ByteBuffer.wrap(this.cameraFrame, 0, this.cameraFrame.length/3*2)); 
 	}
 	catch (Exception e) {
-	    Log.d("bindcameratexture", "" + e.getMessage());
+	    Log.d("bindCameraTexture", "" + e.getMessage());
 	}
     }
     

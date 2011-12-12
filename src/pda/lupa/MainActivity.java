@@ -9,8 +9,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.Toast;
 
 
 public class MainActivity extends Activity
@@ -55,20 +53,32 @@ public class MainActivity extends Activity
     public boolean onOptionsItemSelected(MenuItem item) {
 	// Handle item selection
 	switch (item.getItemId()) {
-	case R.id.menu_nastaveni:
-	    return true;
-	case R.id.menu_barevny:
-	    Settings.setViewType(0);
-	    return true;
-	case R.id.menu_cernobily:
-		Settings.setViewType(1);
+	    case R.id.menu_nastaveni:
 		return true;
-	case R.id.menu_zluty:
-		Settings.setViewType(2);
-	    return true;
-	default:
-	    return super.onOptionsItemSelected(item);
+	    case R.id.menu_barevny:
+		Settings.setViewType(0);
+		return true;
+	    case R.id.menu_cernobily:
+		    Settings.setViewType(1);
+		    return true;
+	    case R.id.menu_zluty:
+		    Settings.setViewType(2);
+		return true;
+	    case R.id.menu_napoveda:
+		lupa.getNapoveda().setVisibility(View.VISIBLE);
+	    default:
+		return super.onOptionsItemSelected(item);
 	}
+    }
+    
+    @Override
+    public void onBackPressed() {
+	if(lupa.getNapoveda().getVisibility() == View.VISIBLE) {
+	    lupa.getNapoveda().setVisibility(View.INVISIBLE);
+	    lupa.getLightButton().setVisibility(View.VISIBLE);
+	    return;
+	}
+	this.onPause();
     }
     
 

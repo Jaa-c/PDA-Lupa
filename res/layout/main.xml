@@ -25,4 +25,10 @@
             android:layout_alignParentRight="true"
 	    android:layout_alignParentBottom="true" />
     </RelativeLayout>
+    <TextView 
+	android:id="@+id/napoveda"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:scrollbars="vertical"
+	android:maxLines="50" />
 </FrameLayout>

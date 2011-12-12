@@ -32,10 +32,11 @@ import pda.lupa.Settings;
     implements SurfaceHolder.Callback, SurfaceView.OnTouchListener,
     Camera.PreviewCallback {
 	Lupa lupa;
-	
 	Camera camera;
 	SurfaceHolder prevHolder;
+	Context c;
 	
+	/** ukazatel na gl  */
 	MyGLSurfaceView glCallback;
 	
 	/** buffer, do ktereho se nacita obrazek nahledu */
@@ -44,17 +45,18 @@ import pda.lupa.Settings;
 	/** buffer pro nacteni dat z kamery*/
         private byte[] previewBuffer1;
 	
+	/**  pamatuje si 3 posledni framy, aby to vzalo po kliku nejaky starsi,
+	 * nez si s mobilem hneme tim kliknutim
+	 */
 	private List<byte[]> previewFrames = new ArrayList<byte[]>(3);
 
 	/** velikost zobrazovaneho nahledu,
 	 * nastavuje se v SetPreviewSize */
 	private int prevY, prevX = 0;
 	
-	Context c;
-	
+	/** detektor na gesta.. */
 	private GestureDetector gestureDetector;
-        
-	
+  	
 
 	public MySurfaceView(Context c, AttributeSet s) {
 	    super(c, s);
@@ -69,6 +71,10 @@ import pda.lupa.Settings;
 	    
 	}
 	
+	/**
+	 * Inicializace, konstruktor se vola z layoutu
+	 * @param lupa 
+	 */
 	public void init(Lupa lupa) {
 	    this.lupa = lupa;
 	    this.glCallback = lupa.getGlCallback();
@@ -80,7 +86,7 @@ import pda.lupa.Settings;
 	    prevHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	}
 	
-	
+
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 	    //nic
@@ -122,13 +128,15 @@ import pda.lupa.Settings;
 			return;
 		    }
 		    camera.stopPreview();
+		    Settings.setFocusing(false);
 		    camera.setPreviewDisplay(prevHolder);
 		    camera.startPreview();
 		    lupa.light(Settings.isLightOn());
 		}
+		lupa.getLightButton().setVisibility(View.VISIBLE);
 		camera.setPreviewCallbackWithBuffer(this);
 		lupa.setInPreview(true);
-		lupa.focus();
+		if(!Settings.isFocusing()) lupa.focus();
 	    }
 	    catch(Throwable t) {
 		Log.e("onSurfaceChanged", "stala se smula v setPreviewDisplay: " 
@@ -142,6 +150,11 @@ import pda.lupa.Settings;
 	    lupa.close();
 	}
 	
+	/**
+	 * callback na data z kamery
+	 * @param yuvsSource
+	 * @param camera 
+	 */
 	public void onPreviewFrame(byte[] yuvsSource, Camera camera) {
 	    if(Settings.isGlView()) {
 		glCallback.onPreviewFrame(yuvsSource, camera);
@@ -159,7 +172,6 @@ import pda.lupa.Settings;
 	Bitmap bmp;
 	Paint paint = new Paint();
 	ColorMatrixColorFilter filter;
-	
 	@Override
 	protected void onDraw(Canvas canvas) {
 	    if(bmp == null) {
@@ -174,6 +186,9 @@ import pda.lupa.Settings;
 	    invalidate();
 	}
 	
+	/**
+	 * vytvari bitmapu z obrazovky o 3 snimky zpet
+	 */
 	public void createBitmap() {
 	    YuvImage yuvimage;
 	    ByteArrayOutputStream baos;
@@ -189,6 +204,11 @@ import pda.lupa.Settings;
 	}
 	
 	private boolean isInverted;
+	/**
+	 * Nastavuje filtr statickeho zobrazeni
+	 * @param contrast
+	 * @return 
+	 */
 	private ColorMatrixColorFilter setFilter(float contrast) {
 	    ColorMatrix output = new ColorMatrix();
 	    
@@ -229,13 +249,15 @@ import pda.lupa.Settings;
 		    break; 
 	    }
 	    
-	    
-	    
 	    filter = new ColorMatrixColorFilter(output);
 	    return filter;
 	}
 	
 
+	/**
+	 * Nastavime si aktualni rozmery nahledu
+	 * @param size 
+	 */
 	public void setPreviewSize(Camera.Size size) {
 	    //zjistime rozmery nahledu
 	    this.prevX = size.width;
@@ -249,7 +271,7 @@ import pda.lupa.Settings;
 	}
 
 	/**
-	 * 
+	 * Ziskame optimalni roozmery obrazku
 	 * @param width
 	 * @param height
 	 * @param parameters
@@ -259,7 +281,7 @@ import pda.lupa.Settings;
 	    Camera.Size result = null;	    
 	    
 	    for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-		Log.d("tag", size.width + "x" + size.height);
+		//Log.d("tag", size.width + "x" + size.height);
 		if (size.width <= width && size.height <= height) {
 		    if (result == null) {
 			result = size;

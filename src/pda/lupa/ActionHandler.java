@@ -2,7 +2,6 @@ package pda.lupa;
 
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 
 public class ActionHandler extends Handler {
     private Lupa lupa;
@@ -11,6 +10,10 @@ public class ActionHandler extends Handler {
 	this.lupa = lupa;
     }
     
+    /**
+     * Stara se o jednotlive zpravy a uruje, co se bude delat
+     * @param message 
+     */
     @Override
     public void handleMessage(Message message) {	
 	switch (message.what) {

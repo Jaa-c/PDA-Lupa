@@ -10,4 +10,30 @@
     
     <string name="menu_napoveda">Nápověda</string>
     
+    <string name="napoveda"><![CDATA[<h3>Nápověda</h3><br>
+	<b>Ovládání aplikace</b><br>
+	<p>Aplikace se ovládá pomocí jednoduchých gest na displeji. 
+	Kliknutím do libovolného místa na displeji se zastaví aktuální obraz.</p>
+	
+	<p>Aplikace nabízí na výběr několik barevných režimů, které jsou dostupné
+	přes tlačítko menu na vašem telefonu.</p>
+	
+	<p>Ovládání se liší v živém náhledu a v zastaveném obrazu.</p>
+	
+	<b>Ovládání živého náhledu</b><br>
+	<b> - nahoru a dolů</b> - gesta nahoru a dolů slouží k zvětšování,
+	resp. zmenšování obrazu<br>
+	<b> - doleva a doprava</b> - pomocí gesta doprava se invertují 
+	zobrazované barvy, pohyb doleva vrací původní barvy<br><br>
+	
+	<b>Ovládání zastaveného obrazu</b><br>
+	<b> - nahoru a dolů</b> - gesta nahoru zvyšuje kontrast obrázku, gesto 
+	dolu snižuje kontrast obrázku<br>
+	<b> - doleva a doprava</b> - invertují se barvy stejně jako v náhledu<br><br>
+	
+	<p>Vibrace značí dosažení maximální, případně minimální hodnoty
+	(zvětšení, kontrastu, atp.).</p>
+	
+    ]]></string>
+    
 </resources>

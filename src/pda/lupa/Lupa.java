@@ -4,37 +4,30 @@ import pda.lupa.views.MyGLSurfaceView;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Vibrator;
+import android.text.Html;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
-import pda.lupa.callbacks.MyAutoFocusCallback;
 import pda.lupa.views.MySurfaceView;
-
-/**
- * ToDo:
- *  - barevna bude standardne vykreslovana pres surfaceview
- *  - cernobila, invertovana atp se bude muset delat pres openGL
- *  -> do openGL se budou predavat jen cernobila data!! (max 25ms)
- *    -> see http://nhenze.net/?p=107
- *  - a nebo NDK a udělat to v C... ffs!!
- *  -- openGL bude asi muset mít vlastní aktivitu!
- */
 
 
 public final class Lupa {
     /** Kamera */
     private Camera camera = null;
     
-    /* Blbosti aby to fungovalo... */
+    /* SurfaceView a holder */
     private MySurfaceView prev = null;
     private SurfaceHolder prevHolder = null;
-        
+    
+    /** GL View */
     private MyGLSurfaceView glView;
     
     /** Kontext */
@@ -46,9 +39,14 @@ public final class Lupa {
     /** Callback na autofocus! */
     private MyAutoFocusCallback autoFocus;
     
+    /** jsme zrovna v nahledu? */
     private boolean inPreview = false;
     
+    /** tlacitko na svetlo*/
     private final Button light;
+    
+    /** napoveda, jen jednoduse textview */
+    private TextView napoveda;
     
     
     /**
@@ -69,6 +67,16 @@ public final class Lupa {
 	    light.setVisibility(View.INVISIBLE);
 	}
 	
+	this.napoveda = (TextView) this.activity.findViewById(R.id.napoveda);
+	this.napoveda.setText(Html.fromHtml(this.activity.getString((R.string.napoveda))));
+	this.napoveda.setBackgroundColor(Color.BLACK);
+	this.napoveda.setTextColor(Color.WHITE);
+	this.napoveda.setTextSize(20f);
+	this.napoveda.setPadding(10, 10, 10, 10);
+	this.napoveda.setMovementMethod(new ScrollingMovementMethod());
+	
+	this.napoveda.setVisibility(View.INVISIBLE);
+	
 	
 	//je to jeste potreba?
 	Display display = activity.getWindowManager().getDefaultDisplay();
@@ -80,7 +88,6 @@ public final class Lupa {
 	this.prev.init(this);	
 	
     }
-    
     
 
     /**
@@ -103,6 +110,7 @@ public final class Lupa {
      */
     public void focus() {
 	if(!inPreview) return;
+	Settings.setFocusing(true);
 	String focus = camera.getParameters().getFocusMode();
 	if(focus.equals("auto") || focus.equals("macro")) {
 	    camera.autoFocus(autoFocus);
@@ -140,11 +148,19 @@ public final class Lupa {
 	camera.setParameters(param);
     }
     
+    /**
+     * Vibruje po dany cas
+     * @param ms jak dlouho vibrovat
+     */
     public void vibrate(int ms) {
 	Vibrator v = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
 	v.vibrate(ms);
     }
     
+    /**
+     * Meni view
+     * @param viewType 
+     */
     public void changeView(int viewType) {
 	if(viewType == 0)
 	    prev.changeView(false);
@@ -152,10 +168,17 @@ public final class Lupa {
 	    prev.changeView(true);
     }
     
+    /**
+     * nastavuje bitmapu z aktualniho zaberu na displeji
+     */
     public void setBitmapData() {
 	    prev.createBitmap();//glView.getCameraFrame());
     }
     
+    /**
+     * Stara se o svetlo
+     * @param turnOn zapnout nebo vypnout
+     */
     public void light(boolean turnOn) {
 	Camera.Parameters param = camera.getParameters();
 	if(turnOn)
@@ -169,13 +192,13 @@ public final class Lupa {
      * releasuje kameru a mazu vsechny mozny callbacky etc.
      */
     public void close() {
-	System.exit(0);
+	//System.exit(0);
 	if (camera != null) {
-	    prevHolder.addCallback(null); //smazeme klasickej preview 
+	    camera.stopPreview(); //tady konci ZOBRAZOVANI NAHLEDU
+	    camera.setPreviewCallback(null); //smazeme callback na kameru
 	    autoFocus.setHandler(null, 0); //smazeme handler
 	    this.light(false);
-	    camera.setPreviewCallback(null); //smazeme callback na kameru
-	    camera.stopPreview(); //tady konci ZOBRAZOVANI NAHLEDU
+	    Settings.setFocusing(false);
 	    camera.release(); //ted muzeme v klidu ukoncit kameru
 	    camera = null;
 	    glView = null;
@@ -183,12 +206,10 @@ public final class Lupa {
 	}
     }
     
+    //uz jenom gettery
     public MyGLSurfaceView getGlCallback() {
 	return this.glView;
-    
     }
-    
-    
     public boolean inPreview() {
 	return inPreview;
     }
@@ -201,18 +222,23 @@ public final class Lupa {
     public Button getLightButton() {
 	return light;
     }
+    public TextView getNapoveda() {
+	return napoveda;
+    }
     
-    
+    /**
+     * Listener na klik tlacitka baterka
+     */
     class LightOnClickListener implements OnClickListener {
 	public void onClick(View v) {
-		if(Settings.isLightOn()) {
-		    light.setBackgroundResource(R.drawable.button_64_2);
-		    Settings.setLightOn(false);
-		}
-		else {
-		    light.setBackgroundResource(R.drawable.button_64);
-		    Settings.setLightOn(true);
-		}
+	    if(Settings.isLightOn()) {
+		light.setBackgroundResource(R.drawable.button_64_2);
+		Settings.setLightOn(false);
 	    }
+	    else {
+		light.setBackgroundResource(R.drawable.button_64);
+		Settings.setLightOn(true);
+	    }
+	}
     }
 }
